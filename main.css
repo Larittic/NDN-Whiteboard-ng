@@ -1,0 +1,69 @@
+body {
+  background-color: #e9ecef;
+  overflow: hidden;
+}
+
+#canvas {
+  background-color: rgb(255, 255, 255);
+  border: 1px solid #d3d3d3;
+  margin-top: -1px;
+}
+
+.input-label {
+  width: 80px;
+}
+
+#canvas-div {
+  overflow: hidden;
+}
+
+.group-members {
+  overflow-y: auto;
+  margin-top: 24px;
+}
+
+.user-list>h6 {
+  margin-top: 4px;
+  float: left;
+}
+
+.user-list>.btn-group {
+  float: right;
+}
+
+.user-list>.badge {
+  margin-top: 6px;
+  float: right;
+}
+
+.form-setting {
+  width: 100%;
+  max-width: 480px;
+  padding: 12px;
+  margin: auto;
+  margin-top: 200px;
+}
+
+.form-setting h1 {
+  padding-bottom: 24px;
+}
+
+.form-setting .input-group {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.form-setting .form-control {
+  font-size: 16px;
+  padding: 10px;
+  height: auto;
+}
+
+.form-setting .form-control:focus {
+  z-index: 2;
+}
+
+#submit-setting {
+  padding: 10px;
+  margin-top: 24px;
+}
