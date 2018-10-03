@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset='utf-8' />
+  <meta http-equiv='X-UA-Compatible' content='IE=edge'>
+  <title>NDN Whiteboard</title>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css'>
+  <link rel='stylesheet' type='text/css' media='screen' href='main.css' />
+  <script src='https://ajax.googleapis.com/ajax/libs/angularjs/1.7.4/angular.js'></script>
+  <script src='https://ajax.googleapis.com/ajax/libs/angularjs/1.7.4/angular-animate.js'></script>
+  <script src='https://ajax.googleapis.com/ajax/libs/angularjs/1.7.4/angular-touch.js'></script>
+  <script src='https://morgul.github.io/ui-bootstrap4/ui-bootstrap-tpls-3.0.4.js'></script>
+  <script src='https://cdn.rawgit.com/named-data/ndn-js/v0.16.0/build/ndn.js'></script>
+  <!-- constant.js must be loaded before other custom js files. -->
+  <script src='./js/constant.js'></script>
+</head>
+
+<body ng-app='ndnWhiteboard'>
+  <div ng-controller='ndnWhiteboardCtrl'>
+    <!-- Setting -->
+    <div ng-show='showSetting' class='text-center'>
+      <form ng-submit='submitSetting()' class='form-setting'>
+        <h1 class='h1 mb-3 font-weight-light'>NDN Whiteboard</h1>
+        <div class='input-group'>
+          <input ng-model='nfdHost' type='text' class='form-control' placeholder='NFD Host' required autofocus>
+          <div class='input-group-append'>
+            <button ng-click='useDefaultNfdHost()' type='button' class='btn btn-outline-secondary'>Default</button>
+          </div>
+        </div>
+        <div class='input-group'>
+          <input ng-model='userId' type='text' class='form-control' placeholder='User Id' required>
+        </div>
+        <button class='btn btn-primary btn-block' id='submit-setting'>Submit</button>
+      </form>
+    </div> <!-- Setting end -->
+    <!-- Whiteboard -->
+    <div ng-show='showWhiteboard' ng-cloak>
+      <!-- Nav bar -->
+      <nav class='navbar navbar-dark bg-dark'>
+        <a class='navbar-brand' href=''>NDN Whiteboard</a>
+        <div class='input-group col-4'>
+          <input ng-model='joinGroupLink' type='text' class='form-control' placeholder='Group Link'>
+          <div class='input-group-append'>
+            <button class='btn btn-outline-light' id='join-group' type='button'>Join</button>
+          </div>
+        </div>
+      </nav> <!-- Nav bar end -->
+      <div class='container-fluid'>
+        <div class='row'>
+          <!-- Group -->
+          <div class='col-2 group-members'>
+            <h6 class='d-flex justify-content-between align-items-center mb-3'>
+              <span class='text-muted'>Group Members</span>
+              <span class='badge badge-secondary badge-pill'>0</span>
+            </h6>
+            <ul class='list-group mb-3' id='group-member-list'>
+              <!-- List of group members -->
+            </ul>
+          </div> <!-- Group end -->
+          <!-- Canvas -->
+          <div id='canvas-div' class='col-10'>
+            <canvas id='canvas' width='1600px' height='900px'>
+              Sorry, your browser doesn't support the &lt;canvas&gt; element.
+            </canvas>
+          </div> <!-- Canvas end -->
+        </div>
+      </div>
+    </div> <!-- Whiteboard end -->
+  </div>
+
+  <script src='./js/util_service.js'></script>
+  <script src='./js/ndn_service.js'></script>
+  <script src='./js/ndn_whiteboard_app.js'></script>
+  <script src='./js/ndn_whiteboard_ctrl.js'></script>
+
+</body>
+
+</html>
