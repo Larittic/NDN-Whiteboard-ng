@@ -16,8 +16,8 @@ var utilService = angular.module('utilService', [])
   this.getParameterByName = function (name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, '\\$&');
-    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
-    var results = regex.exec(url);
+    const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+    const results = regex.exec(url);
     if (!results) return null;
     if (!results[2]) return '';
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
@@ -25,14 +25,13 @@ var utilService = angular.module('utilService', [])
 
   // Gets query string and parameter string from an interest.
   this.getQueryAndParams = function (interest) {
-    var interestName = interest.getName();
-    var queryString = decodeURIComponent(interestName.getSubName(-1).toUri());
+    let queryString = decodeURIComponent(interest.getName().getSubName(-1).toUri());
     queryString = queryString.substring(1, queryString.length);
-    var query = queryString;
-    var params = '';
+    let query = queryString;
+    let params = '';
     if (queryString.indexOf('?') !== -1) {
-        var splited = queryString.split('?');
-        if (splited.length > 2) return null;
+        const splited = queryString.split('?');
+        if (splited.length > 2) return {};
         query = splited[0];
         params = '?' + splited[1];
     }
