@@ -6,34 +6,10 @@ body {
 #canvas {
   background-color: rgb(255, 255, 255);
   border: 1px solid #d3d3d3;
-  margin-top: -1px;
-}
-
-.input-label {
-  width: 80px;
 }
 
 #canvas-div {
   overflow: hidden;
-}
-
-.group-members {
-  overflow-y: auto;
-  margin-top: 24px;
-}
-
-.user-list>h6 {
-  margin-top: 4px;
-  float: left;
-}
-
-.user-list>.btn-group {
-  float: right;
-}
-
-.user-list>.badge {
-  margin-top: 6px;
-  float: right;
 }
 
 .form-setting {

@@ -13,8 +13,8 @@
   <script src='https://ajax.googleapis.com/ajax/libs/angularjs/1.7.4/angular-touch.js'></script>
   <script src='https://morgul.github.io/ui-bootstrap4/ui-bootstrap-tpls-3.0.4.js'></script>
   <script src='https://cdn.rawgit.com/named-data/ndn-js/v0.16.0/build/ndn.js'></script>
-  <!-- constant.js must be loaded before other custom js files. -->
   <script src='./js/constant.js'></script>
+  <script src='./js/group.js'></script>
 </head>
 
 <body ng-app='ndnWhiteboard'>
@@ -38,29 +38,40 @@
     <!-- Whiteboard -->
     <div ng-show='showWhiteboard' ng-cloak>
       <!-- Nav bar -->
-      <nav class='navbar navbar-dark bg-dark'>
-        <a class='navbar-brand' href=''>NDN Whiteboard</a>
-        <div class='input-group col-4'>
-          <input ng-model='joinGroupLink' type='text' class='form-control' placeholder='Group Link'>
-          <div class='input-group-append'>
-            <button class='btn btn-outline-light' id='join-group' type='button'>Join</button>
+      <nav class='navbar navbar-expand-lg navbar-dark bg-dark'>
+        <a class='navbar-brand font-weight-light' href=''>NDN Whiteboard</a>
+        <div class='collapse navbar-collapse'>
+          <ul class='navbar-nav'>
+            <li class='nav-item'>
+              <span class='navbar-text'>{{ group.id }}</span>
+              <button type='button' class='btn btn-sm btn-outline-danger ml-2'>Leave group</button>
+              <button type='button' class='btn btn-sm btn-outline-success ml-2'>Share link</button>
+            </li>
+          </ul>
+          <div class='input-group col-3 ml-auto'>
+            <input ng-model='groupLink' type='text' class='form-control' placeholder='Group Link'>
+            <div class='input-group-append'>
+              <button ng-click='joinGroupByLink()' type='button' class='btn btn-outline-light'>Join</button>
+            </div>
           </div>
         </div>
       </nav> <!-- Nav bar end -->
       <div class='container-fluid'>
         <div class='row'>
-          <!-- Group -->
-          <div class='col-2 group-members'>
-            <h6 class='d-flex justify-content-between align-items-center mb-3'>
-              <span class='text-muted'>Group Members</span>
-              <span class='badge badge-secondary badge-pill'>0</span>
-            </h6>
-            <ul class='list-group mb-3' id='group-member-list'>
-              <!-- List of group members -->
+          <!-- Group members-->
+          <div class='col-2 px-0'>
+            <ul class='list-group' style='width: 100%'>
+              <li class='list-group-item list-group-item-info rounded-0 border-right-0'>
+                <h6 class='text-muted float-left my-1'>Members</h6>
+                <span class='badge badge-secondary badge-pill float-right mt-1'>{{ group.members.length }}</span>
+              </li>
+              <li ng-repeat='member in group.members' class='list-group-item rounded-0 border-right-0'>
+                <h6 ng-class='member === userId ? "font-weight-bold" : "font-weight-light"' class='float-left my-1'>{{ member }}</h6>
+              </li>
             </ul>
-          </div> <!-- Group end -->
+          </div> <!-- Group members end -->
           <!-- Canvas -->
-          <div id='canvas-div' class='col-10'>
+          <div id='canvas-div' class='col-10 px-0'>
             <canvas id='canvas' width='1600px' height='900px'>
               Sorry, your browser doesn't support the &lt;canvas&gt; element.
             </canvas>
