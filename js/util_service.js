@@ -1,18 +1,19 @@
-var utilService = angular.module('utilService', [])
-.service('util', function () {
+ndnWhiteboardApp.service('util', function () {
   // Generates a random ID by appending a random alphanumeric string of given
   // length to original ID.
   this.getRandomId = function (originalId, randSuffixLength) {
-    const DICT = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    originalId = originalId.replace(' ', '_');
     if (randSuffixLength <= 0) return originalId;
-    let randomId = originalId + '_';
+    let randomId = originalId + '#';
+    const DICT = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     for (let i = 0; i < randSuffixLength; i++) {
       randomId += DICT[Math.floor(Math.random() * DICT.length)];
     }
     return randomId;
   };
 
-  // Gets parameter by name from URL string.
+  // Gets parameter by name from URL string. Returns null if no parameter
+  // matches the [name].
   this.getParameterByName = function (name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, '\\$&');
@@ -31,7 +32,7 @@ var utilService = angular.module('utilService', [])
     let params = '';
     if (queryString.indexOf('?') !== -1) {
         const splited = queryString.split('?');
-        if (splited.length > 2) return {};
+        if (splited.length > 2) throw new Error('Invalid interest name.');
         query = splited[0];
         params = '?' + splited[1];
     }

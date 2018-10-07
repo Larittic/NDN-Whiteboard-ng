@@ -13,8 +13,6 @@
   <script src='https://ajax.googleapis.com/ajax/libs/angularjs/1.7.4/angular-touch.js'></script>
   <script src='https://morgul.github.io/ui-bootstrap4/ui-bootstrap-tpls-3.0.4.js'></script>
   <script src='https://cdn.rawgit.com/named-data/ndn-js/v0.16.0/build/ndn.js'></script>
-  <script src='./js/constant.js'></script>
-  <script src='./js/group.js'></script>
 </head>
 
 <body ng-app='ndnWhiteboard'>
@@ -58,7 +56,7 @@
       </nav> <!-- Nav bar end -->
       <div class='container-fluid'>
         <div class='row'>
-          <!-- Group members-->
+          <!-- Group members -->
           <div class='col-2 px-0'>
             <ul class='list-group' style='width: 100%'>
               <li class='list-group-item list-group-item-info rounded-0 border-right-0'>
@@ -72,7 +70,7 @@
           </div> <!-- Group members end -->
           <!-- Canvas -->
           <div id='canvas-div' class='col-10 px-0'>
-            <canvas id='canvas' width='1600px' height='900px'>
+            <canvas id='canvas' width='3200px' height='1800px'>
               Sorry, your browser doesn't support the &lt;canvas&gt; element.
             </canvas>
           </div> <!-- Canvas end -->
@@ -81,10 +79,14 @@
     </div> <!-- Whiteboard end -->
   </div>
 
-  <script src='./js/util_service.js'></script>
-  <script src='./js/ndn_service.js'></script>
+  <!-- ndn_whiteboard_app.js must be above other scripts. -->
   <script src='./js/ndn_whiteboard_app.js'></script>
   <script src='./js/ndn_whiteboard_ctrl.js'></script>
+  <script src='./js/util_service.js'></script>
+  <script src='./js/ndn_service.js'></script>
+  <script src='./js/group_factory.js'></script>
+  <script src='./js/canvas_factory.js'></script>
+  <script src='./js/config_constant.js'></script>
 
 </body>
 
