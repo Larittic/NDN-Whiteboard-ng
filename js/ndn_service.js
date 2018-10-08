@@ -38,7 +38,6 @@ ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
     const interest = new Interest(new Name(name));
     interest.setInterestLifetimeMilliseconds(lifetime);
     interest.setMustBeFresh(mustBeFresh);
-    console.log("Create interest:", interest.name.toString());
     return interest;
   };
 
@@ -122,6 +121,6 @@ ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
   // Remove a registered prefix with ID [registeredPrefixId] from [face].
   this.removeRegisteredPrefix = function (face, registeredPrefixId) {
     face.removeRegisteredPrefix(registeredPrefixId);
-    console.log("Remove registered prefix with ID:", registeredPrefixId);
+    console.log("Remove registered prefix with ID", registeredPrefixId);
   };
 });

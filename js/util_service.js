@@ -31,14 +31,31 @@ ndnWhiteboardApp.service('util', function () {
     let query = queryString;
     let params = '';
     if (queryString.indexOf('?') !== -1) {
-        const splited = queryString.split('?');
-        if (splited.length > 2) throw new Error('Invalid interest name.');
-        query = splited[0];
-        params = '?' + splited[1];
+      const splited = queryString.split('?');
+      if (splited.length > 2) throw new Error('Invalid interest name.');
+      query = splited[0];
+      params = '?' + splited[1];
     }
     return {
-        query: query,
-        params: params
+      query: query,
+      params: params
     };
+  };
+
+  // Copies [text] to clipboard.
+  this.copyToClipboard = function (text) {
+    console.log('Try to copy:', text);
+    const aux = document.createElement('input');
+    aux.setAttribute('value', text);
+    document.body.appendChild(aux);
+    aux.select();
+    try {
+      const successful = document.execCommand('copy');
+      console.log('Copying text command was', successful ? 'successful.' : 'unsuccessful.');
+    } catch (error) {
+      console.log('Unable to copy text to clipboard');
+    } finally {
+      document.body.removeChild(aux);
+    }
   };
 });
