@@ -22,13 +22,13 @@
       <form ng-submit='submitSetting()' class='form-setting'>
         <h1 class='h1 mb-3 font-weight-light'>NDN Whiteboard</h1>
         <div class='input-group'>
-          <input ng-model='nfdHost' type='text' class='form-control' placeholder='NFD Host' required autofocus>
+          <input ng-model='nfdHost' type='text' class='form-control' placeholder='NFD host' required autofocus>
           <div class='input-group-append'>
             <button ng-click='useDefaultNfdHost()' type='button' class='btn btn-outline-secondary'>Default</button>
           </div>
         </div>
         <div class='input-group'>
-          <input ng-model='userId' type='text' class='form-control' placeholder='User Id' required>
+          <input ng-model='username' type='text' class='form-control' placeholder='username' required>
         </div>
         <button class='btn btn-primary btn-block' id='submit-setting'>Submit</button>
       </form>
@@ -42,14 +42,16 @@
           <ul class='navbar-nav'>
             <li class='nav-item'>
               <span class='navbar-text'>{{ group.id }}</span>
-              <button type='button' class='btn btn-sm btn-outline-danger ml-2'>Leave group</button>
-              <button type='button' class='btn btn-sm btn-outline-success ml-2'>Share link</button>
+              <button ng-click='leaveGroup()' type='button' class='btn btn-sm btn-outline-danger ml-2'>Leave group</button>
+              <button ng-click='shareLink()' type='button' class='btn btn-sm btn-outline-success ml-2'>Share link</button>
+              <!-- DEBUG -->
+              <button ng-click='logMembers()' type='button' class='btn btn-sm btn-outline-warning ml-2'>Log members</button>
             </li>
           </ul>
           <div class='input-group col-3 ml-auto'>
             <input ng-model='groupLink' type='text' class='form-control' placeholder='Group Link'>
             <div class='input-group-append'>
-              <button ng-click='joinGroupByLink()' type='button' class='btn btn-outline-light'>Join</button>
+              <button ng-click='joinGroup()' type='button' class='btn btn-outline-light'>Join</button>
             </div>
           </div>
         </div>
@@ -79,7 +81,7 @@
     </div> <!-- Whiteboard end -->
   </div>
 
-  <!-- ndn_whiteboard_app.js must be above other scripts. -->
+  <!-- ndn_whiteboard_app.js must be loaded before other scripts. -->
   <script src='./js/ndn_whiteboard_app.js'></script>
   <script src='./js/ndn_whiteboard_ctrl.js'></script>
   <script src='./js/util_service.js'></script>

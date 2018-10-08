@@ -51,7 +51,7 @@ ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
       // TODO: verify data integrity and decrypt.
       console.log("Receive data for interest:", interest.name.toString(),
         "\nData content:", data.content.toString());
-      handleData(interest, data.content);
+      handleData(interest, data);
     };
 
     // On-timeout callback.
@@ -102,13 +102,13 @@ ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
 
     // On-register-failed callback.
     const onRegisterFailed = function (prefix) {
-      console.log("Register data failed:", prefix.toUri());
+      console.log("Register prefix failed:", prefix.toUri());
       handleRegisterFailed(prefix);
     };
 
     // On-register-success callback.
     const onRegisterSuccess = function (prefix, registeredPrefixId) {
-      console.log("Register data succeeded:", prefix.toUri(), "with id",
+      console.log("Register prefix succeeded:", prefix.toUri(), "with ID",
         registeredPrefixId);
       handleRegisterSuccess(prefix, registeredPrefixId);
     };
@@ -116,7 +116,6 @@ ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
     // Register prefix.
     const registeredPrefixId = face.registerPrefix(new Name(prefix),
       onInterest, onRegisterFailed, onRegisterSuccess);
-    console.log("Register prefix:", prefix, "with ID:", registeredPrefixId);
     return registeredPrefixId;
   };
 
