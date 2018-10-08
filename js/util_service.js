@@ -4,7 +4,7 @@ ndnWhiteboardApp.service('util', function () {
   this.getRandomId = function (originalId, randSuffixLength) {
     originalId = originalId.replace(' ', '_');
     if (randSuffixLength <= 0) return originalId;
-    let randomId = originalId + '#';
+    let randomId = originalId + '-';
     const DICT = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     for (let i = 0; i < randSuffixLength; i++) {
       randomId += DICT[Math.floor(Math.random() * DICT.length)];
