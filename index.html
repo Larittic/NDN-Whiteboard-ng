@@ -12,7 +12,7 @@
   <script src='https://ajax.googleapis.com/ajax/libs/angularjs/1.7.4/angular-animate.js'></script>
   <script src='https://ajax.googleapis.com/ajax/libs/angularjs/1.7.4/angular-touch.js'></script>
   <script src='https://morgul.github.io/ui-bootstrap4/ui-bootstrap-tpls-3.0.4.js'></script>
-  <script src='https://cdn.rawgit.com/named-data/ndn-js/v0.16.0/build/ndn.js'></script>
+  <script src='./js/ndn.js'></script>
 </head>
 
 <body ng-app='ndnWhiteboard'>
@@ -67,6 +67,7 @@
               </li>
               <li ng-repeat='member in group.members' class='list-group-item rounded-0 border-right-0'>
                 <h6 ng-class='member === userId ? "font-weight-bold" : "font-weight-light"' class='float-left my-1'>{{ member }}</h6>
+                <span ng-show='member === group.manager' class='badge badge-primary float-left ml-2 mt-1'>M</span>
               </li>
             </ul>
           </div> <!-- Group members end -->

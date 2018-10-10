@@ -27,15 +27,21 @@ ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
     return face;
   };
 
-  // Creates and returns interest based on input parameters.
-  this.createInterest = function (name, params = {}, lifetime = 2000,
+  // Creates and returns interest based on input parameters. Interest name will
+  // be '[prefix]/[command]?[serialized_params]'.
+  this.createInterest = function (prefix, command = 'noop', params = {}, lifetime = 2000,
     mustBeFresh = true) {
-    // If [params] is not empty, append the serialized parameters to the name
-    // in the format of "[name]?[key]=[value]&...".
+    const name = new Name(prefix);
+    // If [params] is not empty, append the serialized parameters to the command
+    // in the format of "[command]?[key]=[value]&...".
     if (!angular.equals(params, {})) {
-      name += '?' + $httpParamSerializer(params);
+      command += '?' + $httpParamSerializer(params);
     }
-    const interest = new Interest(new Name(name));
+    // [command] must be added to [name] by calling Name.append(). If using new
+    // Name(prefix + command), ndnjs will try to decode the part before '='
+    // as decimal, which will be decoded as NaN.
+    name.append(command);
+    const interest = new Interest(name);
     interest.setInterestLifetimeMilliseconds(lifetime);
     interest.setMustBeFresh(mustBeFresh);
     return interest;

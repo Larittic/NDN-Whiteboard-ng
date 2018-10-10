@@ -62,7 +62,7 @@ ndnWhiteboardApp.factory('Group', function () {
     };
 
     this.getManagerPrefix = function () {
-      return this.uri + '/manager';
+      return this.getMemberPrefix(this.manager);
     };
 
     this.getMemberPrefix = function (member) {
@@ -71,7 +71,7 @@ ndnWhiteboardApp.factory('Group', function () {
     };
 
     this.getGroupLink = function () {
-      return this.uri;
+      return this.getManagerPrefix();
     };
   };
 });

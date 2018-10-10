@@ -49,9 +49,8 @@ function ($scope, $exceptionHandler, util, ndn, Group, config) {
   // Creates a new group as the initial manager and registers related prefixes.
   const createGroup = function () {
     $scope.group = new Group(util.getRandomId('group', 6), config.URI_PREFIX, $scope.userId);
-    // Try to register manager prefix and member prefix.
+    // Try to register member prefix.
     try {
-      $scope.managerPrefixId = registerManagerPrefix();
       $scope.memeberPrefixId = registerMemberPrefix();
     } catch (error) {
       $exceptionHandler(error);
@@ -95,7 +94,8 @@ function ($scope, $exceptionHandler, util, ndn, Group, config) {
 
     const parsedGroupLink = parseGroupLink(groupLink);
     const interest = ndn.createInterest(
-      name = parsedGroupLink.uri + '/manager/request_join',
+      prefix = parsedGroupLink.prefix,
+      command = 'request_join',
       params = {
         id: $scope.userId
       }, lifetime = 2000, mustBeFresh = true);
@@ -104,91 +104,43 @@ function ($scope, $exceptionHandler, util, ndn, Group, config) {
 
   const parseGroupLink = function (groupLink) {
     return {
-      uri: groupLink
+      prefix: groupLink
     }
   };
 
-  // Leaves the current group by notifying the manager and removing registered
-  // prefixes. If the user is group manager, it will automatically send interest
-  // to transfer manager role to another member if there is any.
+  // Leaves the current group by removing registered prefixes and notifying the
+  // manager. If the user is group manager, instead of notifying the manger, it
+  // will send manager_leave interest to another member if there is any. The
+  // member become the new manager and notify the group.
+  //
+  // * Note that, when the manager leaves the group, group link also changes.
   const leaveGroup = function () {
     if (!$scope.group) return;
-    if ($scope.userId == $scope.group.manager) {
-      // TODO: transfer manager role to another group member.
-    } else {
-      // Send notify_leave to group manager.
-      const interest = ndn.createInterest(
-        name = $scope.group.getManagerPrefix() + '/notify_leave',
-        params = {
-          id: $scope.userId
-        }, lifetime = 2000, mustBeFresh = true);
-      ndn.sendInterest($scope.face, interest);
-    }
-
     // Remove registered prefix.
-    if ($scope.managerPrefixId) {
-      ndn.removeRegisteredPrefix($scope.face, $scope.managerPrefixId);
-    }
     if ($scope.memeberPrefixId) {
       ndn.removeRegisteredPrefix($scope.face, $scope.memeberPrefixId);
     }
-  };
 
-  // Registers manager prefix. Returns registered prefix ID if succeeds.
-  const registerManagerPrefix = function () {
-    // Callback to handle interest.
-    const handleInterest = function (interest) {
-      return $scope.$apply(function () {
-        const queryAndParams = util.getQueryAndParams(interest);
-        const senderId = util.getParameterByName('id', queryAndParams.params);
-        if (!senderId) {
-          throw new Error(`Missing parameter 'id' in interest ${interest.getName().toUri()}`);
-        }
-        switch (queryAndParams.query) {
-          case 'request_join': return handleRequestJoin(senderId);
-          case 'notify_leave': return handleNotifyLeave(senderId);
-          case 'group_view': return handleGroupView();
-          case 'whiteboard_updates': break;
-          default: break;
-        }
-        return null;
-      });
-    };
-    // Return registered prefix ID.
-    return ndn.registerPrefix($scope.face, $scope.group.getManagerPrefix(), handleInterest);
-  };
-
-  const handleRequestJoin = function(requester) {
-    // Add requester to group and notify members of group update.
-    $scope.group.addMember(requester);
-    notifyGroupUpdate();
-    // Reponse includes accept decision and all current group data.
-    return createData(JSON.stringify({
-      accept: true,
-      groupView: $scope.group.getGroupView(),
-      whiteboardUpdates: $scope.group.getWhiteboardUpdates()
-    }));
-  };
-
-  const handleNotifyLeave = function(leaver) {
-    // Remove leaver from group and notify members of group update.
-    $scope.group.removeMember(leaver);
-    notifyGroupUpdate();
-    return createData('ACK');
-  };
-
-  const handleGroupView = function() {
-    return createData(JSON.stringify($scope.group.getGroupView()));
-  };
-
-  // Notifies members of group update. Only manager will call it.
-  const notifyGroupUpdate = function () {
-    for (member of $scope.group.members) {
-      if (member === $scope.group.manager) continue;
+    if ($scope.userId === $scope.group.manager) {
+      // If the user is group manager, send manager_leave interest to another
+      // member who will become the new manager and notify the group.
+      if ($scope.group.members.length > 1) {
+        const newManager = $scope.group.members[$scope.group.members[0] === $scope.userId ? 1 : 0];
+        const interest = ndn.createInterest(
+          prefix = $scope.group.getMemberPrefix(newManager),
+          command = 'manager_leave',
+          params = {
+            id: $scope.userId
+          }, lifetime = 2000, mustBeFresh = true);
+        ndn.sendInterest($scope.face, interest);
+      }
+    } else {
+      // Send notify_leave to group manager.
       const interest = ndn.createInterest(
-        name = $scope.group.getMemberPrefix(member) + '/notify_group_update',
+        prefix = $scope.group.getManagerPrefix(),
+        command = 'notify_leave',
         params = {
-          id: $scope.group.manager
+          id: $scope.userId
         }, lifetime = 2000, mustBeFresh = true);
       ndn.sendInterest($scope.face, interest);
     }
@@ -205,8 +157,15 @@ function ($scope, $exceptionHandler, util, ndn, Group, config) {
           throw new Error(`Missing parameter 'id' in interest ${interest.getName().toUri()}`);
         }
         switch (queryAndParams.query) {
-          case 'notify_group_update': return handleNotifyGroupUpdate();
+          // Only manager will handle these two queries.
+          case 'request_join': return handleRequestJoin(senderId);
+          case 'notify_leave': return handleNotifyLeave(senderId);
+          // All group members will handle these queries.
+          case 'manager_leave': return handleManagerLeave(senderId);
+          case 'notify_group_update': return handleNotifyGroupUpdate(senderId);
+          case 'group_view': return handleGroupView();
           case 'notify_whiteboard_update': break;
+          case 'all_whiteboard_updates': break;
           case 'whiteboard_update': break;
           default: break;
         }
@@ -218,21 +177,73 @@ function ($scope, $exceptionHandler, util, ndn, Group, config) {
       $scope.group.getMemberPrefix($scope.userId), handleInterest);
   };
 
-  const handleNotifyGroupUpdate = function() {
+  const handleRequestJoin = function(requester) {
+    if ($scope.userId !== $scope.group.manager) return null;
+    // Add requester to group and notify members of group update.
+    $scope.group.addMember(requester);
+    notifyGroupUpdate();
+    // Reponse includes accept decision and all current group data.
+    return createData(JSON.stringify({
+      accept: true,
+      groupView: $scope.group.getGroupView(),
+      whiteboardUpdates: $scope.group.getWhiteboardUpdates()
+    }));
+  };
+
+  const handleNotifyLeave = function(leaver) {
+    if ($scope.userId !== $scope.group.manager) return null;
+    // Remove leaver from group and notify members of group update.
+    $scope.group.removeMember(leaver);
+    notifyGroupUpdate();
+    return createData('ACK');
+  };
+
+  const handleManagerLeave = function (previousManager) {
+    // Remove the previous manager from group and take over the manager role.
+    $scope.group.removeMember(previousManager);
+    $scope.group.manager = $scope.userId;
+    // Notify members of group update.
+    notifyGroupUpdate();
+    return createData('ACK');
+  };
+
+  const handleNotifyGroupUpdate = function(senderId) {
     // Callback to handle received data.
     const handleData = function (interest, data) {
       $scope.$apply(function () {
         $scope.group.setGroupView(JSON.parse(data.content));
       });
     };
-    // Send interest to retrieve current group view.
+    // Send interest to retrieve current group view. Note that we cannot use
+    // getManagerPrefix() as prefix here because there might be a manager role
+    // transferring.
     const interest = ndn.createInterest(
-      name = $scope.group.getManagerPrefix() + '/group_view',
+      prefix = $scope.group.getMemberPrefix(senderId),
+      command = 'group_view',
       params = {
         id: $scope.userId
       }, lifetime = 2000, mustBeFresh = true);
-    ndn.sendInterest($scope.face, interest, handleData);
+    ndn.sendInterest($scope.face, interest, handleData,
+      handleTimeout = () => {}, retry = 1);
     return createData('ACK');
+  };
+
+  const handleGroupView = function() {
+    return createData(JSON.stringify($scope.group.getGroupView()));
+  };
+
+  // Notifies members of group update. Only manager will call it.
+  const notifyGroupUpdate = function () {
+    for (member of $scope.group.members) {
+      if (member === $scope.userId) continue;
+      const interest = ndn.createInterest(
+        prefix = $scope.group.getMemberPrefix(member),
+        command = 'notify_group_update',
+        params = {
+          id: $scope.userId
+        }, lifetime = 2000, mustBeFresh = true);
+      ndn.sendInterest($scope.face, interest);
+    }
   };
 
   // Creates a Data object.
