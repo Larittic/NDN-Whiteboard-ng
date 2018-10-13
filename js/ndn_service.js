@@ -1,4 +1,4 @@
-ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
+const ndnService = function ($httpParamSerializer) {
   // Creates a new NDN face with a RSA key pair in DER as ID certificate.
   this.createFace = function (nfdHost, userId, rsaKeyPair) {
     const identityStorage = new MemoryIdentityStorage();
@@ -129,4 +129,7 @@ ndnWhiteboardApp.service('ndn', function ($httpParamSerializer) {
     face.removeRegisteredPrefix(registeredPrefixId);
     console.log("Remove registered prefix with ID", registeredPrefixId);
   };
-});
+};
+
+// Register service.
+ndnWhiteboardApp.service('ndn', ndnService);

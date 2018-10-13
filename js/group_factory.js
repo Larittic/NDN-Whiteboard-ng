@@ -1,4 +1,4 @@
-ndnWhiteboardApp.factory('Group', function () {
+const groupFactory = function () {
   return function (groupId, uriPrefix, manager) {
     this.id = groupId;
     this.uri = uriPrefix + '/' + groupId;
@@ -74,4 +74,7 @@ ndnWhiteboardApp.factory('Group', function () {
       return this.getManagerPrefix();
     };
   };
-});
+};
+
+// Register factory.
+ndnWhiteboardApp.factory('Group', groupFactory);

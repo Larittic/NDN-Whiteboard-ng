@@ -3,15 +3,6 @@ body {
   overflow: hidden;
 }
 
-#canvas {
-  background-color: rgb(255, 255, 255);
-  border: 1px solid #d3d3d3;
-}
-
-#canvas-div {
-  overflow: hidden;
-}
-
 .form-setting {
   width: 100%;
   max-width: 480px;
@@ -42,4 +33,9 @@ body {
 #submit-setting {
   padding: 10px;
   margin-top: 24px;
+}
+
+#canvas {
+  background-color: rgb(255, 255, 255);
+  border: 1px solid #d3d3d3;
 }

@@ -1,4 +1,4 @@
-ndnWhiteboardApp.service('util', function () {
+const utilService = function () {
   // Generates a random ID by appending a random alphanumeric string of given
   // length to original ID.
   this.getRandomId = function (originalId, randSuffixLength) {
@@ -58,4 +58,7 @@ ndnWhiteboardApp.service('util', function () {
       document.body.removeChild(aux);
     }
   };
-});
+};
+
+// Register service.
+ndnWhiteboardApp.service('util', utilService);
