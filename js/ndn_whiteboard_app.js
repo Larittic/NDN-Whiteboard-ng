@@ -1,1 +1,1 @@
-var ndnWhiteboardApp = angular.module("ndnWhiteboard", ['ui.bootstrap']);
+var ndnWhiteboardApp = angular.module('ndnWhiteboard', ['ui.bootstrap']);

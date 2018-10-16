@@ -1,11 +1,11 @@
-const utilService = function () {
+const utilService = function() {
   // Generates a random ID by appending a random alphanumeric string of given
   // length to original ID.
-  this.getRandomId = function (originalId, randSuffixLength) {
+  this.getRandomId = function(originalId, randSuffixLength) {
     originalId = originalId.replace(' ', '_');
     if (randSuffixLength <= 0) return originalId;
     let randomId = originalId + '-';
-    const DICT = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const DICT = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     for (let i = 0; i < randSuffixLength; i++) {
       randomId += DICT[Math.floor(Math.random() * DICT.length)];
     }
@@ -14,7 +14,7 @@ const utilService = function () {
 
   // Gets parameter by name from URL string. Returns null if no parameter
   // matches the [name].
-  this.getParameterByName = function (name, url) {
+  this.getParameterByName = function(name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, '\\$&');
     const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
@@ -25,8 +25,13 @@ const utilService = function () {
   };
 
   // Gets query string and parameter string from an interest.
-  this.getQueryAndParams = function (interest) {
-    let queryString = decodeURIComponent(interest.getName().getSubName(-1).toUri());
+  this.getQueryAndParams = function(interest) {
+    let queryString = decodeURIComponent(
+      interest
+        .getName()
+        .getSubName(-1)
+        .toUri()
+    );
     queryString = queryString.substring(1, queryString.length);
     let query = queryString;
     let params = '';
@@ -43,7 +48,7 @@ const utilService = function () {
   };
 
   // Copies [text] to clipboard.
-  this.copyToClipboard = function (text) {
+  this.copyToClipboard = function(text) {
     console.log('Try to copy:', text);
     const aux = document.createElement('input');
     aux.setAttribute('value', text);
@@ -51,7 +56,10 @@ const utilService = function () {
     aux.select();
     try {
       const successful = document.execCommand('copy');
-      console.log('Copying text command was', successful ? 'successful.' : 'unsuccessful.');
+      console.log(
+        'Copying text command was',
+        successful ? 'successful.' : 'unsuccessful.'
+      );
     } catch (error) {
       console.log('Unable to copy text to clipboard');
     } finally {
