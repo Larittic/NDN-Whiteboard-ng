@@ -2,11 +2,11 @@ const ndnWhiteboardCtrl = function(
   $scope,
   $window,
   $exceptionHandler,
-  util,
-  ndn,
-  Group,
-  Canvas,
-  config
+  /* util service */util,
+  /* ndn service */ndn,
+  /* Group factory */Group,
+  /* Canvas factory */Canvas,
+  /* consig constant */config
 ) {
   // DEBUG
   $scope.logMembers = function() {
@@ -84,8 +84,9 @@ const ndnWhiteboardCtrl = function(
       // instead of the returned string.
       event.returnValue = 'Leave group?';
     };
+
     // Leave group on page unload event.
-    $window.onunload = function(event) {
+    $window.onunload = function() {
       leaveGroup();
     };
 
