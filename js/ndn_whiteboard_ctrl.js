@@ -1,7 +1,15 @@
-const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
-  ndn, Group, config) {
+const ndnWhiteboardCtrl = function(
+  $scope,
+  $window,
+  $exceptionHandler,
+  util,
+  ndn,
+  Group,
+  Canvas,
+  config
+) {
   // DEBUG
-  $scope.logMembers = function () {
+  $scope.logMembers = function() {
     console.log($scope.group.members);
   };
 
@@ -10,13 +18,13 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
   $scope.showWhiteboard = false;
 
   // Uses default NFD host.
-  $scope.useDefaultNfdHost = function () {
+  $scope.useDefaultNfdHost = function() {
     $scope.nfdHost = config.DEFAULT_NFD_HOST;
   };
 
   // Submits the NFD host and username settings, initializes the whiteboard.
-  $scope.submitSetting = function () {
-    // Get user ID by randomizing based on input username. 
+  $scope.submitSetting = function() {
+    // Get user ID by randomizing based on input username.
     $scope.userId = util.getRandomId($scope.username, 6);
     // Create NDN face.
     $scope.face = ndn.createFace($scope.nfdHost, $scope.userId, {
@@ -25,9 +33,49 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
     });
     // Create a new group as manager.
     createGroup();
+    // Create canvas object.
+    $scope.canvas = new Canvas(document.getElementById('canvas'));
+
+    // Define scope functions that are only available after submit setting.
+
+    // Leaves the current group and creates a new group automatically.
+    $scope.leaveGroup = function() {
+      leaveGroup();
+      createGroup();
+    };
+
+    // Copies group link to clipboard.
+    $scope.shareLink = function() {
+      util.copyToClipboard($scope.group.getGroupLink());
+    };
+
+    // Tries to join an existing group through group link.
+    $scope.joinGroup = function() {
+      joinGroup();
+    };
+
+    // Canvas mousedown handler.
+    $scope.canvasMousedown = function(event) {
+      $scope.canvas.mousedown(event);
+    };
+
+    // Canvas mouseup handler.
+    $scope.canvasMouseup = function(event) {
+      $scope.canvas.mouseup(event);
+    };
+
+    // Canvas mouseleave handler.
+    $scope.canvasMouseleave = function(event) {
+      $scope.canvas.mouseleave(event);
+    };
+
+    // Canvas mousemove handler.
+    $scope.canvasMousemove = function(event) {
+      $scope.canvas.mousemove(event);
+    };
 
     // Pop up warning message on page beforeunload event.
-    $window.onbeforeunload = function (event) {
+    $window.onbeforeunload = function(event) {
       // Cancel the event as stated by the standard.
       event.preventDefault();
       // In some browsers, the return value of the event is displayed in this
@@ -37,7 +85,7 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
       event.returnValue = 'Leave group?';
     };
     // Leave group on page unload event.
-    $window.onunload = function (event) {
+    $window.onunload = function(event) {
       leaveGroup();
     };
 
@@ -46,26 +94,13 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
     $scope.showWhiteboard = true;
   };
 
-  // Leaves the current group and creates a new group automatically.
-  $scope.leaveGroup = function () {
-    leaveGroup();
-    createGroup();
-  };
-
-  // Copies group link to clipboard.
-  $scope.shareLink = function () {
-    util.copyToClipboard($scope.group.getGroupLink());
-  };
-
-  // Tries to join an existing group through group link.
-  $scope.joinGroup = function () {
-    joinGroup();
-  };
-
   // Creates a new group as the initial manager and registers member prefix.
-  const createGroup = function () {
-    $scope.group = new Group(util.getRandomId('group', 6), config.URI_PREFIX,
-      $scope.userId);
+  const createGroup = function() {
+    $scope.group = new Group(
+      util.getRandomId('group', 6),
+      config.URI_PREFIX,
+      $scope.userId
+    );
     // Try to register member prefix.
     try {
       $scope.memeberPrefixId = registerMemberPrefix();
@@ -75,18 +110,18 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
   };
 
   // Tries to join an existing group through group link.
-  const joinGroup = function () {
+  const joinGroup = function() {
     const groupLink = $scope.groupLink;
     if (groupLink === $scope.group.getGroupLink()) {
       console.log('Already in group. Group link:', groupLink);
       return;
-    };
+    }
 
     // Callback to handle received data. Note that all callbacks that manipulate
     // $scope data should be wrapped in $scope.$apply() for them to be updated
     // timely.
-    const handleData = function (interest, data) {
-      $scope.$apply(function () {
+    const handleData = function(interest, data) {
+      $scope.$apply(function() {
         const dataContent = JSON.parse(data.content);
         if (dataContent.accept) {
           leaveGroup();
@@ -105,24 +140,27 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
     };
 
     // Callback to handle timeout.
-    const handleTimeout = function (interest) {
+    const handleTimeout = function(interest) {
       console.log('Join group request timeout. Group link:', groupLink);
     };
 
     const parsedGroupLink = parseGroupLink(groupLink);
     const interest = ndn.createInterest(
-      prefix = parsedGroupLink.prefix,
-      command = 'request_join',
-      params = {
+      (prefix = parsedGroupLink.prefix),
+      (command = 'request_join'),
+      (params = {
         id: $scope.userId
-      }, lifetime = 2000, mustBeFresh = true);
+      }),
+      (lifetime = 2000),
+      (mustBeFresh = true)
+    );
     ndn.sendInterest($scope.face, interest, handleData, handleTimeout);
   };
 
-  const parseGroupLink = function (groupLink) {
+  const parseGroupLink = function(groupLink) {
     return {
       prefix: groupLink
-    }
+    };
   };
 
   // Leaves the current group by removing registered prefixes and notifying the
@@ -131,7 +169,7 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
   // member become the new manager and notify the group.
   //
   // * Note that, when the manager leaves the group, group link also changes.
-  const leaveGroup = function () {
+  const leaveGroup = function() {
     if (!$scope.group) return;
     // Remove registered prefix.
     if ($scope.memeberPrefixId) {
@@ -144,87 +182,102 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
       const newManager = PickNewManager();
       if (newManager) {
         const interest = ndn.createInterest(
-          prefix = $scope.group.getMemberPrefix(newManager),
-          command = 'manager_leave',
-          params = {
+          (prefix = $scope.group.getMemberPrefix(newManager)),
+          (command = 'manager_leave'),
+          (params = {
             id: $scope.userId
-          }, lifetime = 2000, mustBeFresh = true);
+          }),
+          (lifetime = 2000),
+          (mustBeFresh = true)
+        );
         ndn.sendInterest($scope.face, interest);
       }
     } else {
       // Send notify_leave to group manager.
       const interest = ndn.createInterest(
-        prefix = $scope.group.getManagerPrefix(),
-        command = 'notify_leave',
-        params = {
+        (prefix = $scope.group.getManagerPrefix()),
+        (command = 'notify_leave'),
+        (params = {
           id: $scope.userId
-        }, lifetime = 2000, mustBeFresh = true);
+        }),
+        (lifetime = 2000),
+        (mustBeFresh = true)
+      );
       ndn.sendInterest($scope.face, interest);
     }
   };
 
-  const PickNewManager = function () {
+  const PickNewManager = function() {
     if ($scope.group.members.length > 1) {
-      return $scope.group.members[$scope.group.members[0] === $scope.userId ? 1 : 0];
+      return $scope.group.members[
+        $scope.group.members[0] === $scope.userId ? 1 : 0
+      ];
     } else {
       return null;
     }
   };
 
   // Registers member prefix. Returns registered prefix ID if succeeds.
-  const registerMemberPrefix = function () {
+  const registerMemberPrefix = function() {
     // Callback to handle interest.
-    const handleInterest = function (interest) {
-      return $scope.$apply(function () {
+    const handleInterest = function(interest) {
+      return $scope.$apply(function() {
         const queryAndParams = util.getQueryAndParams(interest);
         const senderId = util.getParameterByName('id', queryAndParams.params);
         if (!senderId) {
-          throw new Error(`Missing parameter 'id' in interest ${interest.getName().toUri()}.`);
+          throw new Error(
+            `Missing parameter 'id' in interest ${interest.getName().toUri()}.`
+          );
         }
         switch (queryAndParams.query) {
-          // Only manager will handle these two queries.
-          case 'request_join':
-            return handleRequestJoin(senderId);
-          case 'notify_leave':
-            return handleNotifyLeave(senderId);
+        // Only manager will handle these two queries.
+        case 'request_join':
+          return handleRequestJoin(senderId);
+        case 'notify_leave':
+          return handleNotifyLeave(senderId);
           // All group members will handle these queries.
-          case 'manager_leave':
-            return handleManagerLeave(senderId);
-          case 'notify_group_update':
-            return handleNotifyGroupUpdate(senderId);
-          case 'group_view':
-            return handleGroupView();
-          case 'notify_whiteboard_update':
-            break;
-          case 'all_whiteboard_updates':
-            break;
-          case 'whiteboard_update':
-            break;
-          default:
-            break;
+        case 'manager_leave':
+          return handleManagerLeave(senderId);
+        case 'notify_group_update':
+          return handleNotifyGroupUpdate(senderId);
+        case 'group_view':
+          return handleGroupView();
+        case 'notify_whiteboard_update':
+          break;
+        case 'all_whiteboard_updates':
+          break;
+        case 'whiteboard_update':
+          break;
+        default:
+          break;
         }
         return null;
       });
     };
     // Return registered prefix ID.
-    return ndn.registerPrefix($scope.face,
-      $scope.group.getMemberPrefix($scope.userId), handleInterest);
+    return ndn.registerPrefix(
+      $scope.face,
+      $scope.group.getMemberPrefix($scope.userId),
+      handleInterest
+    );
   };
 
-  const handleRequestJoin = function (requester) {
+  const handleRequestJoin = function(requester) {
     if ($scope.userId !== $scope.group.manager) return null;
     // Add requester to group and notify members of group update.
     $scope.group.addMember(requester);
     notifyGroupUpdate();
     // Reponse includes accept decision and all current group data.
-    return createData(JSON.stringify({
-      accept: true,
-      groupView: $scope.group.getGroupView(),
-      whiteboardUpdates: $scope.group.getWhiteboardUpdates()
-    }));
+    return createData(
+      JSON.stringify({
+        accept: true,
+        groupView: $scope.group.getGroupView(),
+        whiteboardUpdates: $scope.group.getWhiteboardUpdates()
+      })
+    );
   };
 
-  const handleNotifyLeave = function (leaver) {
+  const handleNotifyLeave = function(leaver) {
     if ($scope.userId !== $scope.group.manager) return null;
     // Remove leaver from group and notify members of group update.
     $scope.group.removeMember(leaver);
@@ -232,7 +285,7 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
     return createData('ACK');
   };
 
-  const handleManagerLeave = function (previousManager) {
+  const handleManagerLeave = function(previousManager) {
     // Remove the previous manager from group and take over the manager role.
     $scope.group.removeMember(previousManager);
     $scope.group.manager = $scope.userId;
@@ -241,10 +294,10 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
     return createData('ACK');
   };
 
-  const handleNotifyGroupUpdate = function (senderId) {
+  const handleNotifyGroupUpdate = function(senderId) {
     // Callback to handle received data.
-    const handleData = function (interest, data) {
-      $scope.$apply(function () {
+    const handleData = function(interest, data) {
+      $scope.$apply(function() {
         $scope.group.setGroupView(JSON.parse(data.content));
       });
     };
@@ -252,36 +305,47 @@ const ndnWhiteboardCtrl = function ($scope, $window, $exceptionHandler, util,
     // getManagerPrefix() as prefix here because there might be a manager role
     // transferring.
     const interest = ndn.createInterest(
-      prefix = $scope.group.getMemberPrefix(senderId),
-      command = 'group_view',
-      params = {
+      (prefix = $scope.group.getMemberPrefix(senderId)),
+      (command = 'group_view'),
+      (params = {
         id: $scope.userId
-      }, lifetime = 2000, mustBeFresh = true);
-    ndn.sendInterest($scope.face, interest, handleData,
-      handleTimeout = () => {}, retry = 1);
+      }),
+      (lifetime = 2000),
+      (mustBeFresh = true)
+    );
+    ndn.sendInterest(
+      $scope.face,
+      interest,
+      handleData,
+      (handleTimeout = () => {}),
+      (retry = 1)
+    );
     return createData('ACK');
   };
 
-  const handleGroupView = function () {
+  const handleGroupView = function() {
     return createData(JSON.stringify($scope.group.getGroupView()));
   };
 
   // Notifies members of group update. Only manager will call it.
-  const notifyGroupUpdate = function () {
+  const notifyGroupUpdate = function() {
     for (member of $scope.group.members) {
       if (member === $scope.userId) continue;
       const interest = ndn.createInterest(
-        prefix = $scope.group.getMemberPrefix(member),
-        command = 'notify_group_update',
-        params = {
+        (prefix = $scope.group.getMemberPrefix(member)),
+        (command = 'notify_group_update'),
+        (params = {
           id: $scope.userId
-        }, lifetime = 2000, mustBeFresh = true);
+        }),
+        (lifetime = 2000),
+        (mustBeFresh = true)
+      );
       ndn.sendInterest($scope.face, interest);
     }
   };
 
   // Creates a Data object.
-  const createData = function (content = '', name = '', freshnessPeriod = 0) {
+  const createData = function(content = '', name = '', freshnessPeriod = 0) {
     let metaInfo = new MetaInfo();
     metaInfo.setFreshnessPeriod(freshnessPeriod);
     return new Data(new Name(name), metaInfo, content);

@@ -41,7 +41,7 @@
         <div class='collapse navbar-collapse'>
           <ul class='navbar-nav'>
             <li class='nav-item'>
-              <span class='navbar-text'>{{ group.id }}</span>
+              <span class='navbar-text'>{{group.id}}</span>
               <button ng-click='leaveGroup()' type='button' class='btn btn-sm btn-outline-danger ml-2'>Leave group</button>
               <button ng-click='shareLink()' type='button' class='btn btn-sm btn-outline-success ml-2'>Share link</button>
               <!-- DEBUG -->
@@ -63,17 +63,18 @@
             <ul class='list-group' style='width: 100%'>
               <li class='list-group-item list-group-item-info rounded-0 border-right-0'>
                 <h6 class='text-secondary float-left my-1'>Members</h6>
-                <span class='badge badge-secondary badge-pill float-right mt-1'>{{ group.members.length }}</span>
+                <span class='badge badge-secondary badge-pill float-right mt-1'>{{group.members.length}}</span>
               </li>
               <li ng-repeat='member in group.members' class='list-group-item rounded-0 border-right-0'>
-                <h6 ng-class='member === userId ? "font-weight-bold" : "font-weight-light"' class='float-left my-1'>{{ member }}</h6>
+                <h6 ng-class='member === userId ? "font-weight-bold" : "font-weight-light"' class='float-left my-1'>{{member}}</h6>
                 <span ng-show='member === group.manager' class='badge badge-primary float-left ml-2 mt-1'>M</span>
               </li>
             </ul>
           </div> <!-- Group members end -->
           <!-- Canvas -->
           <div class='col-10 px-0'>
-            <canvas id='canvas' width='3200px' height='1800px'>
+            <canvas ng-mousedown='canvasMousedown($event)' ng-mouseup='canvasMouseup($event)' ng-mouseleave='canvasMouseleave($event)'
+              ng-mousemove='canvasMousemove($event)' id='canvas' width='3200px' height='1800px'>
               Sorry, your browser doesn't support the &lt;canvas&gt; element.
             </canvas>
           </div> <!-- Canvas end -->
