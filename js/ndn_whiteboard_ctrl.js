@@ -2,11 +2,11 @@ const ndnWhiteboardCtrl = function(
   $scope,
   $window,
   $exceptionHandler,
-  /* util service */util,
-  /* ndn service */ndn,
-  /* Group factory */Group,
-  /* Canvas factory */Canvas,
-  /* consig constant */config
+  /* util service */ util,
+  /* ndn service */ ndn,
+  /* Group factory */ Group,
+  /* Canvas factory */ Canvas,
+  /* config constant */ config
 ) {
   // DEBUG
   $scope.logMembers = function() {
@@ -62,11 +62,21 @@ const ndnWhiteboardCtrl = function(
     // Canvas mouseup handler.
     $scope.canvasMouseup = function(event) {
       $scope.canvas.mouseup(event);
+      // Save latest whiteboard update. If it is a new update, notify group
+      // members of whiteboard update.
+      if (saveWhiteboardUpdate($scope.userId, $scope.canvas.getLastUpdate())) {
+        notifyWhiteboardUpdate();
+      }
     };
 
     // Canvas mouseleave handler.
     $scope.canvasMouseleave = function(event) {
       $scope.canvas.mouseleave(event);
+      // Save latest whiteboard update. If it is a new update, notify group
+      // members of whiteboard update.
+      if (saveWhiteboardUpdate($scope.userId, $scope.canvas.getLastUpdate())) {
+        notifyWhiteboardUpdate();
+      }
     };
 
     // Canvas mousemove handler.
@@ -94,6 +104,8 @@ const ndnWhiteboardCtrl = function(
     $scope.showSetting = false;
     $scope.showWhiteboard = true;
   };
+
+  // Private (local) methods.
 
   // Creates a new group as the initial manager and registers member prefix.
   const createGroup = function() {
@@ -127,7 +139,8 @@ const ndnWhiteboardCtrl = function(
         if (dataContent.accept) {
           leaveGroup();
           $scope.group.setGroupView(dataContent.groupView);
-          $scope.group.setWhiteboardUpdates(dataContent.whiteboardUpdates);
+          $scope.group.setAllWhiteboardUpdates(dataContent.whiteboardUpdates);
+          // TODO: Clear current canvas and apply all whiteboardupdates.
           // Try to register member prefix.
           try {
             $scope.memeberPrefixId = registerMemberPrefix();
@@ -224,33 +237,15 @@ const ndnWhiteboardCtrl = function(
     const handleInterest = function(interest) {
       return $scope.$apply(function() {
         const queryAndParams = util.getQueryAndParams(interest);
-        const senderId = util.getParameterByName('id', queryAndParams.params);
-        if (!senderId) {
+        /* To delete later or move to interest handlers.
+        if (!util.getParameterByName('id', queryAndParams.params)) {
           throw new Error(
             `Missing parameter 'id' in interest ${interest.getName().toUri()}.`
           );
         }
-        switch (queryAndParams.query) {
-        // Only manager will handle these two queries.
-        case 'request_join':
-          return handleRequestJoin(senderId);
-        case 'notify_leave':
-          return handleNotifyLeave(senderId);
-          // All group members will handle these queries.
-        case 'manager_leave':
-          return handleManagerLeave(senderId);
-        case 'notify_group_update':
-          return handleNotifyGroupUpdate(senderId);
-        case 'group_view':
-          return handleGroupView();
-        case 'notify_whiteboard_update':
-          break;
-        case 'all_whiteboard_updates':
-          break;
-        case 'whiteboard_update':
-          break;
-        default:
-          break;
+        */
+        if (queryAndParams.query in interestHandler) {
+          return interestHandler[queryAndParams.query](queryAndParams.params);
         }
         return null;
       });
@@ -263,69 +258,129 @@ const ndnWhiteboardCtrl = function(
     );
   };
 
-  const handleRequestJoin = function(requester) {
-    if ($scope.userId !== $scope.group.manager) return null;
-    // Add requester to group and notify members of group update.
-    $scope.group.addMember(requester);
-    notifyGroupUpdate();
-    // Reponse includes accept decision and all current group data.
-    return createData(
-      JSON.stringify({
-        accept: true,
-        groupView: $scope.group.getGroupView(),
-        whiteboardUpdates: $scope.group.getWhiteboardUpdates()
-      })
-    );
-  };
+  // Interest handlers classified by query strings.
+  const interestHandler = {
+    // Handler for 'request_join' interest. Only manager will call it.
+    request_join: function(params) {
+      if ($scope.userId !== $scope.group.manager) return null;
+      const requester = util.getParameterByName('id', params);
+      // Add requester to group and notify members of group update.
+      $scope.group.addMember(requester);
+      notifyGroupUpdate();
+      // Reponse includes accept decision and all current group data.
+      return createData(
+        JSON.stringify({
+          accept: true,
+          groupView: $scope.group.getGroupView(),
+          whiteboardUpdates: $scope.group.getAllWhiteboardUpdates()
+        })
+      );
+    },
 
-  const handleNotifyLeave = function(leaver) {
-    if ($scope.userId !== $scope.group.manager) return null;
-    // Remove leaver from group and notify members of group update.
-    $scope.group.removeMember(leaver);
-    notifyGroupUpdate();
-    return createData('ACK');
-  };
+    // Handler for 'notify_leave' interest. Only manager will call it.
+    notify_leave: function(params) {
+      if ($scope.userId !== $scope.group.manager) return null;
+      const leaver = util.getParameterByName('id', params);
+      // Remove leaver from group and notify members of group update.
+      $scope.group.removeMember(leaver);
+      notifyGroupUpdate();
+      return createData('ACK');
+    },
 
-  const handleManagerLeave = function(previousManager) {
-    // Remove the previous manager from group and take over the manager role.
-    $scope.group.removeMember(previousManager);
-    $scope.group.manager = $scope.userId;
-    // Notify members of group update.
-    notifyGroupUpdate();
-    return createData('ACK');
-  };
+    // Handler for 'manager_leavel interest.
+    manager_leave: function(params) {
+      const previousManager = util.getParameterByName('id', params);
+      // Remove the previous manager from group and take over the manager role.
+      $scope.group.removeMember(previousManager);
+      $scope.group.manager = $scope.userId;
+      // Notify members of group update.
+      notifyGroupUpdate();
+      return createData('ACK');
+    },
 
-  const handleNotifyGroupUpdate = function(senderId) {
-    // Callback to handle received data.
-    const handleData = function(interest, data) {
-      $scope.$apply(function() {
-        $scope.group.setGroupView(JSON.parse(data.content));
-      });
-    };
-    // Send interest to retrieve current group view. Note that we cannot use
-    // getManagerPrefix() as prefix here because there might be a manager role
-    // transferring.
-    const interest = ndn.createInterest(
-      (prefix = $scope.group.getMemberPrefix(senderId)),
-      (command = 'group_view'),
-      (params = {
-        id: $scope.userId
-      }),
-      (lifetime = 2000),
-      (mustBeFresh = true)
-    );
-    ndn.sendInterest(
-      $scope.face,
-      interest,
-      handleData,
-      (handleTimeout = () => {}),
-      (retry = 1)
-    );
-    return createData('ACK');
-  };
+    // Handler for 'notify_group_update' interest.
+    notify_group_update: function(params) {
+      const senderId = util.getParameterByName('id', params);
+      // Callback to handle received data.
+      const handleData = function(interest, data) {
+        $scope.$apply(function() {
+          $scope.group.setGroupView(JSON.parse(data.content));
+        });
+      };
+      // Send interest to retrieve current group view. Note that we cannot use
+      // getManagerPrefix() as prefix here because there might be a manager role
+      // transferring.
+      const interest = ndn.createInterest(
+        (prefix = $scope.group.getMemberPrefix(senderId)),
+        (command = 'group_view'),
+        (params = {
+          id: $scope.userId
+        }),
+        (lifetime = 2000),
+        (mustBeFresh = true)
+      );
+      ndn.sendInterest(
+        $scope.face,
+        interest,
+        handleData,
+        (handleTimeout = () => {}),
+        (retry = 1)
+      );
+      return createData('ACK');
+    },
 
-  const handleGroupView = function() {
-    return createData(JSON.stringify($scope.group.getGroupView()));
+    // Handler for 'group_view' interest.
+    group_view: function(params) {
+      return createData(JSON.stringify($scope.group.getGroupView()));
+    },
+
+    // Handler for 'notify_whiteboard_update' interest.
+    notify_whiteboard_update: function(params) {
+      const senderId = util.getParameterByName('id', params);
+      const updateNum = util.getParameterByName('num', params);
+      // TODO: send interest to fetch the update.
+      // Callback to handle received data.
+      const handleData = function(interest, data) {
+        const dataContent = JSON.parse(data.content);
+        if (
+          saveWhiteboardUpdate(
+            dataContent.updater,
+            dataContent.whiteboardUpdate
+          )
+        ) {
+          $scope.canvas.applyContentUpdate(dataContent.whiteboardUpdate);
+        }
+      };
+      const interest = ndn.createInterest(
+        (prefix = $scope.group.getMemberPrefix(senderId)),
+        (command = 'whiteboard_update'),
+        (params = {
+          id: $scope.userId
+        }),
+        (lifetime = 2000),
+        (mustBeFresh = false)
+      );
+      ndn.sendInterest(
+        $scope.face,
+        interest,
+        handleData,
+        (handleTimeout = () => {}),
+        (retry = 1)
+      );
+      return createData('ACK');
+    },
+
+    // Handler for 'all_whiteboard_updates' interest.
+    all_whiteboard_updates: function(params) {
+      // TODO: handle interest.
+      return null;
+    },
+
+    // Handler for 'whiteboard_update' interest.
+    whiteboard_update: function(params) {
+      // TODO: handle interest.
+      return null;
+    }
   };
 
   // Notifies members of group update. Only manager will call it.
@@ -343,6 +398,41 @@ const ndnWhiteboardCtrl = function(
       );
       ndn.sendInterest($scope.face, interest);
     }
+  };
+
+  // Notifies members of whiteboard update. All members will call it.
+  const notifyWhiteboardUpdate = function(updateNum) {
+    for (member of $scope.group.members) {
+      if (member === $scope.userId) continue;
+      const interest = ndn.createInterest(
+        (prefix = $scope.group.getMemberPrefix(member)),
+        (command = 'notify_whiteboard_update'),
+        (params = {
+          id: $scope.userId,
+          num: updateNum
+        }),
+        (lifetime = 2000),
+        (mustBeFresh = true)
+      );
+      ndn.sendInterest($scope.face, interest);
+    }
+  };
+
+  // Saves the last canvas drawing to group whiteboard updates. Returns true if
+  // the update is new.
+  const saveWhiteboardUpdate = function(updater, whiteboardUpdate) {
+    if (
+      !whiteboardUpdate ||
+      $scope.group.hasWhiteboardUpdate(updater, whiteboardUpdate.num)
+    ) {
+      return false;
+    }
+    $scope.group.setWhiteboardUpdate(
+      updater,
+      whiteboardUpdate.num,
+      whiteboardUpdate
+    );
+    return true;
   };
 
   // Creates a Data object.
