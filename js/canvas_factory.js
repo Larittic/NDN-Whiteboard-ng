@@ -15,7 +15,10 @@ const canvasFactory = function() {
     this.stroke = [];
 
     this.lastUpdate = {
-      num: -1
+      num: -1,
+      strokeStyle: 'black',
+      lineWidth: 2,
+      stroke: []
     };
 
     this.clearContent = function() {
@@ -35,6 +38,11 @@ const canvasFactory = function() {
         );
         this.drawDot(stroke[i], update.lineWidth, update.strokeStyle);
       }
+    };
+
+    this.getLastUpdate = function() {
+      if (this.lastUpdate.stroke.length === 0) return null;
+      return this.lastUpdate;
     };
 
     this.mousedown = function(event) {
@@ -57,7 +65,6 @@ const canvasFactory = function() {
       this.drawDot(curPoint, this.draw.lineWidth, this.draw.strokeStyle);
       this.addStrokePoint(curPoint);
       this.draw.drawing = false;
-      console.log ('mouseleave');
       this.saveLastUpdateAndClearStroke();
     };
 
@@ -78,6 +85,12 @@ const canvasFactory = function() {
     };
 
     this.saveLastUpdateAndClearStroke = function() {
+      // If the stroke is empty, don't increase the last update number. Set last
+      // update stroke to empty and return.
+      if (this.stroke.length === 0) {
+        this.lastUpdate.stroke = [];
+        return;
+      } 
       this.lastUpdate.num++;
       this.lastUpdate.strokeStyle = this.draw.strokeStyle;
       this.lastUpdate.lineWidth = this.draw.lineWidth;
