@@ -39,22 +39,22 @@ const groupFactory = function() {
       this.members = groupView.members;
     };
 
-    this.getWhiteboardUpdates = function() {
+    this.getAllWhiteboardUpdates = function() {
       return this.whiteboardUpdates;
     };
 
-    this.setWhiteboardUpdates = function(whiteboardUpdates) {
+    this.setAllWhiteboardUpdates = function(whiteboardUpdates) {
       this.whiteboardUpdates = whiteboardUpdates;
     };
 
-    this.getSingleWhiteboardUpdate = function(member, updateNum) {
+    this.getWhiteboardUpdate = function(member, updateNum) {
       if (!this.hasMember(member)) return null;
       const key = member + '#' + updateNum;
       if (!(key in this.whiteboardUpdates)) return null;
       return this.whiteboardUpdates[key];
     };
 
-    this.setSingleWhiteboardUpdate = function(
+    this.setWhiteboardUpdate = function(
       member,
       updateNum,
       updateContent
@@ -63,6 +63,10 @@ const groupFactory = function() {
       const key = member + '#' + updateNum;
       this.whiteboardUpdates[key] = updateContent;
       return true;
+    };
+
+    this.hasWhiteboardUpdate = function(member, updateNum) {
+      return (member + '#' + updateNum) in this.whiteboardUpdates;
     };
 
     this.getManagerPrefix = function() {
