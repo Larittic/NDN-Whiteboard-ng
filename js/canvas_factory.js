@@ -6,38 +6,50 @@ const canvasFactory = function() {
     this.offsetLeft = canvasElement.offsetLeft;
     this.offsetTop = canvasElement.offsetTop;
 
+    // All canvas updates in time order.
+    this.updates = [];
+
+    // Current draw state.
     this.draw = {
       strokeStyle: 'black',
       lineWidth: 2,
       drawing: false
     };
 
+    // Current stroke points.
     this.stroke = [];
 
+    // Last update.
     this.lastUpdate = {
       num: -1,
+      time: -1,
       strokeStyle: 'black',
       lineWidth: 2,
       stroke: []
     };
 
+    // Clears canvas content.
     this.clearContent = function() {
+      this.updates = [];
       this.context.clearRect(0, 0, this.width, this.height);
     };
 
-    this.applyContentUpdate = function(update) {
-      const stroke = update.stroke;
-      if (!stroke || stroke.length == 0) return;
-      this.drawDot(stroke[0], update.lineWidth, update.strokeStyle);
-      for (let i = 1; i < stroke.length; i++) {
-        this.drawLine(
-          stroke[i - 1],
-          stroke[i],
-          update.lineWidth,
-          update.strokeStyle
-        );
-        this.drawDot(stroke[i], update.lineWidth, update.strokeStyle);
+    // Inserts update into this.updates according to time order. Return the
+    // insert index.
+    this.insertUpdate = function(update) {
+      let i = this.updates.length - 1;
+      while (i >= 0) {
+        if (this.updates[i].time <= update.time) break;
       }
+      this.updates.splice(i + 1, 0, update);
+      return i + 1;
+    };
+
+    // Applies a new content update.
+    this.applyContentUpdate = function(update) {
+      this.insertUpdate(update);
+      this.drawStroke(update.stroke, update.lineWidth, update.strokeStyle);
+      // TODO: reconcile according to insert index. e.g., different colors.
     };
 
     this.getLastUpdate = function() {
@@ -85,17 +97,15 @@ const canvasFactory = function() {
     };
 
     this.saveLastUpdateAndClearStroke = function() {
-      // If the stroke is empty, don't increase the last update number. Set last
-      // update stroke to empty and return.
-      if (this.stroke.length === 0) {
-        this.lastUpdate.stroke = [];
-        return;
-      } 
+      // If the stroke is empty, return immediately.
+      if (this.stroke.length === 0) return;
       this.lastUpdate.num++;
+      this.lastUpdate.time = new Date().getTime();
       this.lastUpdate.strokeStyle = this.draw.strokeStyle;
       this.lastUpdate.lineWidth = this.draw.lineWidth;
       // Deep copy.
       this.lastUpdate.stroke = JSON.parse(JSON.stringify(this.stroke));
+      this.insertUpdate(this.lastUpdate);
       this.clearStroke();
     };
 
@@ -105,6 +115,15 @@ const canvasFactory = function() {
 
     this.addStrokePoint = function(point) {
       this.stroke.push(point);
+    };
+
+    this.drawStroke = function(stroke, lineWidth, strokeStyle) {
+      if (!stroke || stroke.length == 0) return;
+      this.drawDot(stroke[0], lineWidth, strokeStyle);
+      for (let i = 1; i < stroke.length; i++) {
+        this.drawLine(stroke[i - 1], stroke[i], lineWidth, strokeStyle );
+        this.drawDot(stroke[i], lineWidth, strokeStyle);
+      }
     };
 
     this.drawDot = function(point, radius, fillStyle) {

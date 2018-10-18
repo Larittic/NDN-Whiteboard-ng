@@ -35,6 +35,9 @@ const ndnWhiteboardCtrl = function(
     createGroup();
     // Create canvas object.
     $scope.canvas = new Canvas(document.getElementById('canvas'));
+    // Num of last canvas update from user drawing (not from other group
+    // members). It is used to check if there is a fresh canvas update.
+    $scope.canvasLastUpdateNum = -1; 
 
     // Define scope functions that are only available after submit setting.
 
@@ -62,21 +65,27 @@ const ndnWhiteboardCtrl = function(
     // Canvas mouseup handler.
     $scope.canvasMouseup = function(event) {
       $scope.canvas.mouseup(event);
-      // Save latest whiteboard update. If it is a new update, notify group
-      // members of whiteboard update.
-      if (saveWhiteboardUpdate($scope.userId, $scope.canvas.getLastUpdate())) {
-        notifyWhiteboardUpdate();
-      }
+      const update = $scope.canvas.getLastUpdate();
+      // If this update is null or not fresh, return immediately.
+      if (!update || update.num <= $scope.canvasLastUpdateNum) return;
+      $scope.canvasLastUpdateNum = update.num;
+      // Save latest whiteboard update and notify group members of
+      // whiteboard update.
+      saveWhiteboardUpdate($scope.userId, update);
+      notifyWhiteboardUpdate(update.num);
     };
 
     // Canvas mouseleave handler.
     $scope.canvasMouseleave = function(event) {
       $scope.canvas.mouseleave(event);
-      // Save latest whiteboard update. If it is a new update, notify group
-      // members of whiteboard update.
-      if (saveWhiteboardUpdate($scope.userId, $scope.canvas.getLastUpdate())) {
-        notifyWhiteboardUpdate();
-      }
+      const update = $scope.canvas.getLastUpdate();
+      // If this update is null or not fresh, return immediately.
+      if (!update || update.num <= $scope.canvasLastUpdateNum) return;
+      $scope.canvasLastUpdateNum = update.num;
+      // Save latest whiteboard update and notify group members of
+      // whiteboard update.
+      saveWhiteboardUpdate($scope.userId, update);
+      notifyWhiteboardUpdate(update.num);
     };
 
     // Canvas mousemove handler.
@@ -338,24 +347,21 @@ const ndnWhiteboardCtrl = function(
     notify_whiteboard_update: function(params) {
       const senderId = util.getParameterByName('id', params);
       const updateNum = util.getParameterByName('num', params);
-      // TODO: send interest to fetch the update.
+      // TODO: send interest to fetch the update and possibily missing updates
+      // that are also from the sender and have a number smaller than the latest
+      // updateNum.
       // Callback to handle received data.
       const handleData = function(interest, data) {
         const dataContent = JSON.parse(data.content);
-        if (
-          saveWhiteboardUpdate(
-            dataContent.updater,
-            dataContent.whiteboardUpdate
-          )
-        ) {
-          $scope.canvas.applyContentUpdate(dataContent.whiteboardUpdate);
-        }
+        saveWhiteboardUpdate(dataContent.updater, dataContent.whiteboardUpdate);
+        $scope.canvas.applyContentUpdate(dataContent.whiteboardUpdate);
       };
       const interest = ndn.createInterest(
         (prefix = $scope.group.getMemberPrefix(senderId)),
         (command = 'whiteboard_update'),
         (params = {
-          id: $scope.userId
+          id: $scope.userId,
+          num: updateNum
         }),
         (lifetime = 2000),
         (mustBeFresh = false)
@@ -378,8 +384,12 @@ const ndnWhiteboardCtrl = function(
 
     // Handler for 'whiteboard_update' interest.
     whiteboard_update: function(params) {
-      // TODO: handle interest.
-      return null;
+      const senderId = util.getParameterByName('id', params);
+      const updateNum = util.getParameterByName('num', params);
+      return createData(JSON.stringify({
+        updater: $scope.userId,
+        whiteboardUpdate: $scope.group.getWhiteboardUpdate($scope.userId, updateNum)
+      }));
     }
   };
 
@@ -418,21 +428,9 @@ const ndnWhiteboardCtrl = function(
     }
   };
 
-  // Saves the last canvas drawing to group whiteboard updates. Returns true if
-  // the update is new.
-  const saveWhiteboardUpdate = function(updater, whiteboardUpdate) {
-    if (
-      !whiteboardUpdate ||
-      $scope.group.hasWhiteboardUpdate(updater, whiteboardUpdate.num)
-    ) {
-      return false;
-    }
-    $scope.group.setWhiteboardUpdate(
-      updater,
-      whiteboardUpdate.num,
-      whiteboardUpdate
-    );
-    return true;
+  // Saves the last canvas drawing to group whiteboard updates.
+  const saveWhiteboardUpdate = function(updater, update) {
+    $scope.group.setWhiteboardUpdate(updater, update);
   };
 
   // Creates a Data object.

@@ -54,14 +54,10 @@ const groupFactory = function() {
       return this.whiteboardUpdates[key];
     };
 
-    this.setWhiteboardUpdate = function(
-      member,
-      updateNum,
-      updateContent
-    ) {
+    this.setWhiteboardUpdate = function(member, update) {
       if (!this.hasMember(member)) return false;
-      const key = member + '#' + updateNum;
-      this.whiteboardUpdates[key] = updateContent;
+      const key = member + '#' + update.num;
+      this.whiteboardUpdates[key] = update;
       return true;
     };
 
