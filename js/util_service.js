@@ -1,4 +1,9 @@
 const utilService = function() {
+  // Deep copies an object.
+  this.deepcopy = function(object) {
+    return JSON.parse(JSON.stringify(object));
+  };
+
   // Generates a random ID by appending a random alphanumeric string of given
   // length to original ID.
   this.getRandomId = function(originalId, randSuffixLength) {

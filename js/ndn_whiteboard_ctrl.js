@@ -9,8 +9,12 @@ const ndnWhiteboardCtrl = function(
   /* config constant */ config
 ) {
   // DEBUG
-  $scope.logMembers = function() {
-    console.log($scope.group.members);
+  $scope.logGroup = function() {
+    console.log($scope.group);
+  };
+  // DEBUG
+  $scope.logCanvas = function() {
+    console.log($scope.canvas);
   };
 
   // Show setting and hide whiteboard in the beginning.
@@ -31,13 +35,13 @@ const ndnWhiteboardCtrl = function(
       publicKey: config.DEFAULT_RSA_PUBLIC_KEY_DER,
       privateKey: config.DEFAULT_RSA_PRIVATE_KEY_DER
     });
-    // Create a new group as manager.
-    createGroup();
-    // Create canvas object.
+    // Initialize canvas.
     $scope.canvas = new Canvas(document.getElementById('canvas'));
     // Num of last canvas update from user drawing (not from other group
     // members). It is used to check if there is a fresh canvas update.
-    $scope.canvasLastUpdateNum = -1; 
+    $scope.canvasLastUpdateNum = -1;
+    // Create a new group as manager.
+    createGroup();
 
     // Define scope functions that are only available after submit setting.
 
@@ -65,7 +69,7 @@ const ndnWhiteboardCtrl = function(
     // Canvas mouseup handler.
     $scope.canvasMouseup = function(event) {
       $scope.canvas.mouseup(event);
-      const update = $scope.canvas.getLastUpdate();
+      const update = $scope.canvas.getLastContentUpdate();
       // If this update is null or not fresh, return immediately.
       if (!update || update.num <= $scope.canvasLastUpdateNum) return;
       $scope.canvasLastUpdateNum = update.num;
@@ -78,7 +82,7 @@ const ndnWhiteboardCtrl = function(
     // Canvas mouseleave handler.
     $scope.canvasMouseleave = function(event) {
       $scope.canvas.mouseleave(event);
-      const update = $scope.canvas.getLastUpdate();
+      const update = $scope.canvas.getLastContentUpdate();
       // If this update is null or not fresh, return immediately.
       if (!update || update.num <= $scope.canvasLastUpdateNum) return;
       $scope.canvasLastUpdateNum = update.num;
@@ -149,7 +153,8 @@ const ndnWhiteboardCtrl = function(
           leaveGroup();
           $scope.group.setGroupView(dataContent.groupView);
           $scope.group.setAllWhiteboardUpdates(dataContent.whiteboardUpdates);
-          // TODO: Clear current canvas and apply all whiteboardupdates.
+          // Set canvas content.
+          $scope.canvas.setContentUpdates(Object.values(dataContent.whiteboardUpdates));
           // Try to register member prefix.
           try {
             $scope.memeberPrefixId = registerMemberPrefix();
@@ -228,6 +233,12 @@ const ndnWhiteboardCtrl = function(
       );
       ndn.sendInterest($scope.face, interest);
     }
+
+    // Clear canvas content and reset last update number.
+    $scope.canvas.clearContentUpdates();
+    $scope.canvasLastUpdateNum = -1;
+    // Reset as empty group.
+    $scope.group = new Group();
   };
 
   const PickNewManager = function() {
@@ -386,10 +397,15 @@ const ndnWhiteboardCtrl = function(
     whiteboard_update: function(params) {
       const senderId = util.getParameterByName('id', params);
       const updateNum = util.getParameterByName('num', params);
-      return createData(JSON.stringify({
-        updater: $scope.userId,
-        whiteboardUpdate: $scope.group.getWhiteboardUpdate($scope.userId, updateNum)
-      }));
+      return createData(
+        JSON.stringify({
+          updater: $scope.userId,
+          whiteboardUpdate: $scope.group.getWhiteboardUpdate(
+            $scope.userId,
+            updateNum
+          )
+        })
+      );
     }
   };
 
