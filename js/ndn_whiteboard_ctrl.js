@@ -20,6 +20,9 @@ const ndnWhiteboardCtrl = function(
   // Show setting and hide whiteboard in the beginning.
   $scope.showSetting = true;
   $scope.showWhiteboard = false;
+  $scope.disableSubmitSetting = false;
+
+  // Scope methods.
 
   // Uses default NFD host.
   $scope.useDefaultNfdHost = function() {
@@ -28,94 +31,108 @@ const ndnWhiteboardCtrl = function(
 
   // Submits the NFD host and username settings, initializes the whiteboard.
   $scope.submitSetting = function() {
+    // Disable submit setting button.
+    $scope.disableSubmitSetting = true;
     // Get user ID by randomizing based on input username.
     $scope.userId = util.getRandomId($scope.username, 6);
-    // Create NDN face.
-    $scope.face = ndn.createFace($scope.nfdHost, $scope.userId, {
-      publicKey: config.DEFAULT_RSA_PUBLIC_KEY_DER,
-      privateKey: config.DEFAULT_RSA_PRIVATE_KEY_DER
-    });
     // Initialize canvas.
     $scope.canvas = new Canvas(document.getElementById('canvas'));
     // Num of last canvas update from user drawing (not from other group
     // members). It is used to check if there is a fresh canvas update.
     $scope.canvasLastUpdateNum = -1;
-    // Create a new group as manager.
+    // Create NDN face.
+    $scope.face = new Face({ host: $scope.nfdHost });
+    // Create NDN key chain.
+    $scope.keyChain = new KeyChain('pib-memory:', 'tpm-memory:');
+    // Create default identity and set it as command signing info.
+    $scope.keyChain.createIdentityV2(
+      (identityName = new Name('defaultIdentity')),
+      (params = KeyChain.getDefaultKeyParams()),
+      (onComplete = function() {
+        $scope.$apply(function() {
+          $scope.face.setCommandSigningInfo(
+            $scope.keyChain,
+            $scope.keyChain.getDefaultCertificateName()
+          );
+          // Create a new group as manager.
+          createGroup();
+          // Hide setting and show whiteboard.
+          $scope.showSetting = false;
+          $scope.showWhiteboard = true;
+        });
+      }),
+      (onError = function(error) {
+        $exceptionHandler(error);
+      })
+    );
+  };
+
+  // Leaves the current group and creates a new group automatically.
+  $scope.leaveGroup = function() {
+    leaveGroup();
     createGroup();
+  };
 
-    // Define scope functions that are only available after submit setting.
+  // Copies group link to clipboard.
+  $scope.shareLink = function() {
+    util.copyToClipboard($scope.group.getGroupLink());
+  };
 
-    // Leaves the current group and creates a new group automatically.
-    $scope.leaveGroup = function() {
-      leaveGroup();
-      createGroup();
-    };
+  // Tries to join an existing group through group link.
+  $scope.joinGroup = function() {
+    joinGroup();
+  };
 
-    // Copies group link to clipboard.
-    $scope.shareLink = function() {
-      util.copyToClipboard($scope.group.getGroupLink());
-    };
+  // Canvas mousedown handler.
+  $scope.canvasMousedown = function(event) {
+    $scope.canvas.mousedown(event);
+  };
 
-    // Tries to join an existing group through group link.
-    $scope.joinGroup = function() {
-      joinGroup();
-    };
+  // Canvas mouseup handler.
+  $scope.canvasMouseup = function(event) {
+    $scope.canvas.mouseup(event);
+    const update = $scope.canvas.getLastContentUpdate();
+    // If this update is null or not fresh, return immediately.
+    if (!update || update.num <= $scope.canvasLastUpdateNum) return;
+    $scope.canvasLastUpdateNum = update.num;
+    // Save latest whiteboard update and notify group members of
+    // whiteboard update.
+    saveWhiteboardUpdate($scope.userId, update);
+    notifyWhiteboardUpdate(update.num);
+  };
 
-    // Canvas mousedown handler.
-    $scope.canvasMousedown = function(event) {
-      $scope.canvas.mousedown(event);
-    };
+  // Canvas mouseleave handler.
+  $scope.canvasMouseleave = function(event) {
+    $scope.canvas.mouseleave(event);
+    const update = $scope.canvas.getLastContentUpdate();
+    // If this update is null or not fresh, return immediately.
+    if (!update || update.num <= $scope.canvasLastUpdateNum) return;
+    $scope.canvasLastUpdateNum = update.num;
+    // Save latest whiteboard update and notify group members of
+    // whiteboard update.
+    saveWhiteboardUpdate($scope.userId, update);
+    notifyWhiteboardUpdate(update.num);
+  };
 
-    // Canvas mouseup handler.
-    $scope.canvasMouseup = function(event) {
-      $scope.canvas.mouseup(event);
-      const update = $scope.canvas.getLastContentUpdate();
-      // If this update is null or not fresh, return immediately.
-      if (!update || update.num <= $scope.canvasLastUpdateNum) return;
-      $scope.canvasLastUpdateNum = update.num;
-      // Save latest whiteboard update and notify group members of
-      // whiteboard update.
-      saveWhiteboardUpdate($scope.userId, update);
-      notifyWhiteboardUpdate(update.num);
-    };
+  // Canvas mousemove handler.
+  $scope.canvasMousemove = function(event) {
+    $scope.canvas.mousemove(event);
+  };
 
-    // Canvas mouseleave handler.
-    $scope.canvasMouseleave = function(event) {
-      $scope.canvas.mouseleave(event);
-      const update = $scope.canvas.getLastContentUpdate();
-      // If this update is null or not fresh, return immediately.
-      if (!update || update.num <= $scope.canvasLastUpdateNum) return;
-      $scope.canvasLastUpdateNum = update.num;
-      // Save latest whiteboard update and notify group members of
-      // whiteboard update.
-      saveWhiteboardUpdate($scope.userId, update);
-      notifyWhiteboardUpdate(update.num);
-    };
+  // Pop up warning message on page beforeunload event.
+  $window.onbeforeunload = function(event) {
+    // Cancel the event as stated by the standard.
+    event.preventDefault();
+    // In some browsers, the return value of the event is displayed in this
+    // dialog. Starting with Firefox 44, Chrome 51, Opera 38 and Safari 9.1, a
+    // generic string not under the control of the webpage will be shown
+    // instead of the returned string.
+    event.returnValue = 'Leave group?';
+  };
 
-    // Canvas mousemove handler.
-    $scope.canvasMousemove = function(event) {
-      $scope.canvas.mousemove(event);
-    };
-
-    // Pop up warning message on page beforeunload event.
-    $window.onbeforeunload = function(event) {
-      // Cancel the event as stated by the standard.
-      event.preventDefault();
-      // In some browsers, the return value of the event is displayed in this
-      // dialog. Starting with Firefox 44, Chrome 51, Opera 38 and Safari 9.1, a
-      // generic string not under the control of the webpage will be shown
-      // instead of the returned string.
-      event.returnValue = 'Leave group?';
-    };
-
-    // Leave group on page unload event.
-    $window.onunload = function() {
-      leaveGroup();
-    };
-
-    // Hide setting and show whiteboard.
-    $scope.showSetting = false;
-    $scope.showWhiteboard = true;
+  // Leave group on page unload event.
+  $window.onunload = function() {
+    leaveGroup();
   };
 
   // Private (local) methods.
@@ -154,7 +171,9 @@ const ndnWhiteboardCtrl = function(
           $scope.group.setGroupView(dataContent.groupView);
           $scope.group.setAllWhiteboardUpdates(dataContent.whiteboardUpdates);
           // Set canvas content.
-          $scope.canvas.setContentUpdates(Object.values(dataContent.whiteboardUpdates));
+          $scope.canvas.setContentUpdates(
+            Object.values(dataContent.whiteboardUpdates)
+          );
           // Try to register member prefix.
           try {
             $scope.memeberPrefixId = registerMemberPrefix();

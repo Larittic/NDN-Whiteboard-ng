@@ -1,44 +1,4 @@
 const ndnService = function($httpParamSerializer) {
-  // Creates a new NDN face with a RSA key pair in DER as ID certificate.
-  this.createFace = function(nfdHost, userId, rsaKeyPair) {
-    const identityStorage = new MemoryIdentityStorage();
-    const privateKeyStorage = new MemoryPrivateKeyStorage();
-    const keyChain = new KeyChain(
-      new IdentityManager(identityStorage, privateKeyStorage),
-      new SelfVerifyPolicyManager(identityStorage)
-    );
-    const keyName = new Name('/' + userId + '/SKEY');
-    // The format of the certificate name cannot be modified.
-    // Otherwise, the face.registerPrefix() cannot work properly.
-    const certificateName = keyName
-      .getSubName(0, keyName.size() - 1)
-      .append('KEY')
-      .append(keyName.get(-1))
-      .append('ID-CERT')
-      .append('0');
-    identityStorage.addKey(
-      keyName,
-      KeyType.RSA,
-      new Blob(rsaKeyPair.publicKey, false)
-    );
-    privateKeyStorage.setKeyPairForKeyName(
-      keyName,
-      KeyType.RSA,
-      rsaKeyPair.publicKey,
-      rsaKeyPair.privateKey
-    );
-    console.log('Set KeyChain:', keyName.toString());
-    console.log('Set Certificatename:', certificateName.toString());
-
-    const face = new Face({
-      host: nfdHost
-    });
-    face.setCommandSigningInfo(keyChain, certificateName);
-    console.log('Create face.');
-
-    return face;
-  };
-
   // Creates and returns interest based on input parameters. Interest name will
   // be '[prefix]/[command]?[serialized_params]'.
   this.createInterest = function(
