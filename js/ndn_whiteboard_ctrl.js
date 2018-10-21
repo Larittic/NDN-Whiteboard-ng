@@ -22,7 +22,7 @@ const ndnWhiteboardCtrl = function(
   $scope.showWhiteboard = false;
   $scope.disableSubmitSetting = false;
 
-  // Scope methods.
+  // $scope methods.
 
   // Uses default NFD host.
   $scope.useDefaultNfdHost = function() {
@@ -119,8 +119,11 @@ const ndnWhiteboardCtrl = function(
     $scope.canvas.mousemove(event);
   };
 
-  // Pop up warning message on page beforeunload event.
+  // $window methods.
+
+  // Pop up warning message on page beforeunload event if user is within group.
   $window.onbeforeunload = function(event) {
+    if (!$scope.group) return;
     // Cancel the event as stated by the standard.
     event.preventDefault();
     // In some browsers, the return value of the event is displayed in this
@@ -130,8 +133,9 @@ const ndnWhiteboardCtrl = function(
     event.returnValue = 'Leave group?';
   };
 
-  // Leave group on page unload event.
+  // Leave group on page unload event if user is within group.
   $window.onunload = function() {
+    if (!$scope.group) return;
     leaveGroup();
   };
 
