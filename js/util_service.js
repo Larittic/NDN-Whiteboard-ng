@@ -4,16 +4,23 @@ const utilService = function() {
     return JSON.parse(JSON.stringify(object));
   };
 
-  // Generates a random ID by appending a random alphanumeric string of given
+  // Generates a random alphanumeric string of input length.
+  this.getRandomString = function(length) {
+    if (length <= 0) return '';
+    const DICT = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    let randomString = '';
+    for (let i = 0; i < length; i++) {
+      randomString += DICT[Math.floor(Math.random() * DICT.length)];
+    }
+    return randomString;
+  };
+
+  // Generates a random ID by appending a random alphanumeric string of input
   // length to original ID.
   this.getRandomId = function(originalId, randSuffixLength) {
     originalId = originalId.replace(' ', '_');
     if (randSuffixLength <= 0) return originalId;
-    let randomId = originalId + '-';
-    const DICT = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    for (let i = 0; i < randSuffixLength; i++) {
-      randomId += DICT[Math.floor(Math.random() * DICT.length)];
-    }
+    let randomId = originalId + '-' + this.getRandomString(randSuffixLength);
     return randomId;
   };
 
