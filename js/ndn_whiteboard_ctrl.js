@@ -169,23 +169,25 @@ const ndnWhiteboardCtrl = function(
     // timely.
     const handleData = function(interest, data) {
       $scope.$apply(function() {
-        const dataContent = JSON.parse(data.content);
-        if (dataContent.accept) {
-          leaveGroup();
-          $scope.group.setGroupView(dataContent.groupView);
-          $scope.group.setAllWhiteboardUpdates(dataContent.whiteboardUpdates);
-          // Set canvas content.
-          $scope.canvas.setContentUpdates(
-            Object.values(dataContent.whiteboardUpdates)
+        try {
+          const dataContent = JSON.parse(
+            DecryptAndVerify(data.content, $scope.userId)
           );
-          // Try to register member prefix.
-          try {
+          if (dataContent.accept) {
+            leaveGroup();
+            $scope.group.setGroupView(dataContent.groupView);
+            $scope.group.setAllWhiteboardUpdates(dataContent.whiteboardUpdates);
+            // Set canvas content.
+            $scope.canvas.setContentUpdates(
+              Object.values(dataContent.whiteboardUpdates)
+            );
+            // Register member prefix.
             $scope.memeberPrefixId = registerMemberPrefix();
-          } catch (error) {
-            $exceptionHandler(error);
+          } else {
+            console.log('Join group request rejected. Group link:', groupLink);
           }
-        } else {
-          console.log('Join group request rejected. Group link:', groupLink);
+        } catch (error) {
+          $exceptionHandler(error);
         }
       });
     };
@@ -311,12 +313,15 @@ const ndnWhiteboardCtrl = function(
       $scope.group.addMember(requester);
       notifyGroupUpdate();
       // Reponse includes accept decision and all current group data.
-      return createData(
-        JSON.stringify({
-          accept: true,
-          groupView: $scope.group.getGroupView(),
-          whiteboardUpdates: $scope.group.getAllWhiteboardUpdates()
-        })
+      return createNdnData(
+        SignAndEncrypt(
+          JSON.stringify({
+            accept: true,
+            groupView: $scope.group.getGroupView(),
+            whiteboardUpdates: $scope.group.getAllWhiteboardUpdates()
+          }),
+          requester
+        )
       );
     },
 
@@ -327,7 +332,7 @@ const ndnWhiteboardCtrl = function(
       // Remove leaver from group and notify members of group update.
       $scope.group.removeMember(leaver);
       notifyGroupUpdate();
-      return createData('ACK');
+      return createNdnData(SignAndEncrypt('ACK'));
     },
 
     // Handler for 'manager_leavel interest.
@@ -338,7 +343,7 @@ const ndnWhiteboardCtrl = function(
       $scope.group.manager = $scope.userId;
       // Notify members of group update.
       notifyGroupUpdate();
-      return createData('ACK');
+      return createNdnData(SignAndEncrypt('ACK'));
     },
 
     // Handler for 'notify_group_update' interest.
@@ -347,7 +352,13 @@ const ndnWhiteboardCtrl = function(
       // Callback to handle received data.
       const handleData = function(interest, data) {
         $scope.$apply(function() {
-          $scope.group.setGroupView(JSON.parse(data.content));
+          try {
+            $scope.group.setGroupView(
+              JSON.parse(DecryptAndVerify(data.content))
+            );
+          } catch (error) {
+            $exceptionHandler(error);
+          }
         });
       };
       // Send interest to retrieve current group view. Note that we cannot use
@@ -369,12 +380,14 @@ const ndnWhiteboardCtrl = function(
         (handleTimeout = () => {}),
         (retry = 1)
       );
-      return createData('ACK');
+      return createNdnData(SignAndEncrypt('ACK'));
     },
 
     // Handler for 'group_view' interest.
     group_view: function(params) {
-      return createData(JSON.stringify($scope.group.getGroupView()));
+      return createNdnData(
+        SignAndEncrypt(JSON.stringify($scope.group.getGroupView()))
+      );
     },
 
     // Handler for 'notify_whiteboard_update' interest.
@@ -386,9 +399,16 @@ const ndnWhiteboardCtrl = function(
       // updateNum.
       // Callback to handle received data.
       const handleData = function(interest, data) {
-        const dataContent = JSON.parse(data.content);
-        saveWhiteboardUpdate(dataContent.updater, dataContent.whiteboardUpdate);
-        $scope.canvas.applyContentUpdate(dataContent.whiteboardUpdate);
+        try {
+          const dataContent = JSON.parse(DecryptAndVerify(data.content));
+          saveWhiteboardUpdate(
+            dataContent.updater,
+            dataContent.whiteboardUpdate
+          );
+          $scope.canvas.applyContentUpdate(dataContent.whiteboardUpdate);
+        } catch (error) {
+          $exceptionHandler(error);
+        }
       };
       const interest = ndn.createInterest(
         (prefix = $scope.group.getMemberPrefix(senderId)),
@@ -407,7 +427,7 @@ const ndnWhiteboardCtrl = function(
         (handleTimeout = () => {}),
         (retry = 1)
       );
-      return createData('ACK');
+      return createNdnData(SignAndEncrypt('ACK'));
     },
 
     // Handler for 'all_whiteboard_updates' interest.
@@ -420,14 +440,16 @@ const ndnWhiteboardCtrl = function(
     whiteboard_update: function(params) {
       const senderId = util.getParameterByName('id', params);
       const updateNum = util.getParameterByName('num', params);
-      return createData(
-        JSON.stringify({
-          updater: $scope.userId,
-          whiteboardUpdate: $scope.group.getWhiteboardUpdate(
-            $scope.userId,
-            updateNum
-          )
-        })
+      return createNdnData(
+        SignAndEncrypt(
+          JSON.stringify({
+            updater: $scope.userId,
+            whiteboardUpdate: $scope.group.getWhiteboardUpdate(
+              $scope.userId,
+              updateNum
+            )
+          })
+        )
       );
     }
   };
@@ -472,8 +494,44 @@ const ndnWhiteboardCtrl = function(
     $scope.group.setWhiteboardUpdate(updater, update);
   };
 
-  // Creates a Data object.
-  const createData = function(content = '', name = '', freshnessPeriod = 0) {
+  // Signs and encrypts data (string). Returns result in string. If
+  // [encryptKeyOwner] is 'group', it uses group encryptionPassword to encrypt.
+  // If [encryptKeyOwner] is a member, it uses the member's encryption public
+  // key to encrypt.
+  const SignAndEncrypt = function(data, encryptKeyOwner = 'group') {
+    // TODO: sign the data.
+    if (encryptKeyOwner === 'group') {
+      return $scope.group.encryptWithPassword(data);
+    } else {
+      // TODO: encrypt with member's encryption public key.
+      return data;
+    }
+  };
+
+  // Decrypts and verifies data (string). If succeeds, returns decrypted result
+  // in string. If decryption or verification fails, throw the error. If
+  // [encryptKeyOwner] is 'group', it uses group encryptionPassword to decrypt.
+  // If [encryptKeyOwner] is this user, it uses this user's encryption private
+  // key to decrypt. Otherwise, throw an error.
+  const DecryptAndVerify = function(data, encryptKeyOwner = 'group') {
+    try {
+      if (encryptKeyOwner === 'group') {
+        data = $scope.group.decryptWithPassword(data);
+      } else {
+        if (encryptKeyOwner != $scope.userId) {
+          throw new Error('Unable to decrypt data.');
+        }
+        // TODO: decrypt with member's encryption private key.
+      }
+      // TODO: verify data.
+      return data;
+    } catch (error) {
+      $exceptionHandler(error);
+    }
+  };
+
+  // Creates an NDN Data object.
+  const createNdnData = function(content = '', name = '', freshnessPeriod = 0) {
     let metaInfo = new MetaInfo();
     metaInfo.setFreshnessPeriod(freshnessPeriod);
     return new Data(new Name(name), metaInfo, content);

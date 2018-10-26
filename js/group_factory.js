@@ -3,13 +3,16 @@ const groupFactory = function(util) {
   return function(
     groupId = 'empty_group_id',
     uriPrefix = 'empty_uri_prefix',
-    manager = 'empty_manager'
+    manager = 'empty_manager',
+    encryptionPasswordLength = 16
   ) {
     this.id = groupId;
     this.uri = uriPrefix + '/' + groupId;
     this.manager = manager;
     // Array of member IDs.
     this.members = [manager];
+    // Symmetric password used to encrypt data.
+    this.encryptionPassword = util.getRandomString(encryptionPasswordLength);
     // The whiteboard updates map. Key is [member] + '#' + [updateNum], value is
     // the update content. e.g.,
     //   key: 'A-02Y72D#1'
@@ -49,7 +52,8 @@ const groupFactory = function(util) {
         id: this.id,
         uri: this.uri,
         manager: this.manager,
-        members: this.members
+        members: this.members,
+        encryptionPassword: this.encryptionPassword
       };
     };
 
@@ -59,6 +63,7 @@ const groupFactory = function(util) {
       this.uri = groupView.uri;
       this.manager = groupView.manager;
       this.members = groupView.members;
+      this.encryptionPassword = groupView.encryptionPassword;
     };
 
     // Returns all whiteboard updates.
@@ -107,6 +112,18 @@ const groupFactory = function(util) {
     // Returns the group link that can be used by other users to join.
     this.getGroupLink = function() {
       return this.getManagerPrefix();
+    };
+
+    // Encrypts data (string) with [this.encryptionPassword]. Returns the
+    // encrypted object in JSON string.
+    this.encryptWithPassword = function(data) {
+      return JSON.stringify(sjcl.encrypt(this.encryptionPassword, data));
+    };
+
+    // Decrypts encryptedData (JSON string) with [this.encryptionPassword].
+    // Returns the decrypted string.
+    this. decryptWithPassword = function(encryptedData) {
+      return sjcl.decrypt(this.encryptionPassword, JSON.parse(encryptedData));
     };
   };
 };
