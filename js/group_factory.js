@@ -4,6 +4,7 @@ const groupFactory = function(util, $httpParamSerializer) {
     groupId = 'empty_group_id',
     uriPrefix = 'empty_uri_prefix',
     manager = 'empty_manager',
+    managerPublicKey = null,
     passwordLength = 16,
     nonceLength = 8
   ) {
@@ -12,6 +13,9 @@ const groupFactory = function(util, $httpParamSerializer) {
     this.manager = manager;
     // Array of member IDs.
     this.members = [manager];
+    // Map from member to public key.
+    this.publicKey = {};
+    this.publicKey[manager] = managerPublicKey;
     // Symmetric encryption password used to encrypt data.
     this.password = util.getRandomString(passwordLength);
     // Random nonce string used for verification when user requests to join.
@@ -33,29 +37,37 @@ const groupFactory = function(util, $httpParamSerializer) {
       return this.members.indexOf(member) > -1;
     };
 
-    // Adds [member] to [this.members]. Returns true if succeeds.
-    this.addMember = function(member) {
+    // Adds memberto group. Returns true if succeeds.
+    this.addMember = function(member, publicKey) {
       if (this.hasMember(member)) return false;
       this.members.push(member);
+      this.publicKey[member] = publicKey;
       return true;
     };
 
-    // Removes [member] from [this.members]. Returns true if succeeds.
+    // Removes member from group. Returns true if succeeds.
     this.removeMember = function(member) {
       const index = this.members.indexOf(member);
       if (index === -1) return false;
       this.members.splice(index, 1);
+      delete this.publicKey[member];
       return true;
     };
 
     // Returns the group view object, containing all group properties except the
     // whiteboard updates.
     this.getGroupView = function() {
+      // Serialize public keys.
+      const publicKey = {};
+      for (const member in this.publicKey) {
+        publicKey[member] = util.serializePublicKey(this.publicKey[member]);
+      }
       return {
         id: this.id,
         uri: this.uri,
         manager: this.manager,
         members: this.members,
+        publicKey: publicKey,
         password: this.password,
         nonce: this.nonce
       };
@@ -69,6 +81,13 @@ const groupFactory = function(util, $httpParamSerializer) {
       this.members = groupView.members;
       this.password = groupView.password;
       this.nonce = groupView.nonce;
+      // Unserialize public keys and set [this.publicKey].
+      this.publicKey = {};
+      for (const member in groupView.publicKey) {
+        this.publicKey[member] = util.unserializePublicKey(
+          groupView.publicKey[member]
+        );
+      }
     };
 
     // Returns all whiteboard updates.
@@ -114,9 +133,20 @@ const groupFactory = function(util, $httpParamSerializer) {
       return this.uri + '/' + member;
     };
 
+    // Picks a new manager. It is only called by manager when he is leaving
+    // group and needs to hand over manager role.
+    this.pickNewManager = function() {
+      if (this.members.length > 1) {
+        return this.members[this.members[0] === this.manager ? 1 : 0];
+      } else {
+        return null;
+      }
+    };
+
     // Returns the group link that can be used by other users to join.
     this.getGroupLink = function() {
       const paramString = $httpParamSerializer({
+        managerPublicKey: util.serializePublicKey(this.publicKey[this.manager]),
         password: this.password,
         nonce: this.nonce
       });
@@ -131,6 +161,9 @@ const groupFactory = function(util, $httpParamSerializer) {
     const params = '?' + splited[1];
     return {
       prefix: prefix,
+      managerPublicKey: util.unserializePublicKey(
+        util.getParameterByName('managerPublicKey', params)
+      ),
       password: util.getParameterByName('password', params),
       nonce: util.getParameterByName('nonce', params)
     };

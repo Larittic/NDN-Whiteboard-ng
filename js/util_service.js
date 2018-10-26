@@ -7,7 +7,8 @@ const utilService = function() {
   // Generates a random alphanumeric string of input length.
   this.getRandomString = function(length) {
     if (length <= 0) return '';
-    const DICT = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    const DICT =
+      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
     let randomString = '';
     for (let i = 0; i < length; i++) {
       randomString += DICT[Math.floor(Math.random() * DICT.length)];
@@ -57,6 +58,20 @@ const utilService = function() {
       query: query,
       params: params
     };
+  };
+
+  // Serializes a public key.
+  this.serializePublicKey = function(publicKey) {
+    const pub = publicKey.get();
+    return sjcl.codec.base64.fromBits(pub.x.concat(pub.y));
+  };
+
+  // Unserializes a public key.
+  this.unserializePublicKey = function(publicKeyString) {
+    return new sjcl.ecc.ecdsa.publicKey(
+      sjcl.ecc.curves.c256,
+      sjcl.codec.base64.toBits(publicKeyString)
+    );
   };
 
   // Copies [text] to clipboard.

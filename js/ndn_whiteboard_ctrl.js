@@ -35,6 +35,8 @@ const ndnWhiteboardCtrl = function(
     $scope.disableSubmitSetting = true;
     // Get user ID by randomizing based on input username.
     $scope.userId = util.getRandomId($scope.username, 6);
+    // Create asymmetric key pair used for signing.
+    $scope.signingKeyPair = sjcl.ecc.ecdsa.generateKeys(256);
     // Initialize canvas.
     $scope.canvas = new Canvas(document.getElementById('canvas'));
     // Num of last canvas update from user drawing (not from other group
@@ -144,9 +146,10 @@ const ndnWhiteboardCtrl = function(
   // Creates a new group as the initial manager and registers member prefix.
   const createGroup = function() {
     $scope.group = new Group(
-      util.getRandomId('group', 6),
-      config.URI_PREFIX,
-      $scope.userId
+      (groupId = util.getRandomId('group', 6)),
+      (uriPrefix = config.URI_PREFIX),
+      (manager = $scope.userId),
+      (managerPublicKey = $scope.signingKeyPair.pub)
     );
     // Try to register member prefix.
     try {
@@ -208,7 +211,8 @@ const ndnWhiteboardCtrl = function(
       (prefix = parsedGroupLink.prefix),
       (command = 'request_join'),
       (params = {
-        id: $scope.userId
+        id: $scope.userId,
+        publicKey: util.serializePublicKey($scope.signingKeyPair.pub)
       }),
       (lifetime = 2000),
       (mustBeFresh = true)
@@ -232,7 +236,7 @@ const ndnWhiteboardCtrl = function(
     if ($scope.userId === $scope.group.manager) {
       // If the user is group manager, send manager_leave interest to another
       // member who will become the new manager and notify the group.
-      const newManager = PickNewManager();
+      const newManager = $scope.group.pickNewManager();
       if (newManager) {
         const interest = ndn.createInterest(
           (prefix = $scope.group.getMemberPrefix(newManager)),
@@ -266,23 +270,13 @@ const ndnWhiteboardCtrl = function(
     $scope.group = new Group();
   };
 
-  const PickNewManager = function() {
-    if ($scope.group.members.length > 1) {
-      return $scope.group.members[
-        $scope.group.members[0] === $scope.userId ? 1 : 0
-      ];
-    } else {
-      return null;
-    }
-  };
-
   // Registers member prefix. Returns registered prefix ID if succeeds.
   const registerMemberPrefix = function() {
     // Callback to handle interest.
     const handleInterest = function(interest) {
       return $scope.$apply(function() {
         const queryAndParams = util.getQueryAndParams(interest);
-        /* To delete later or move to interest handlers.
+        /* TODO: delete or move to interest handlers.
         if (!util.getParameterByName('id', queryAndParams.params)) {
           throw new Error(
             `Missing parameter 'id' in interest ${interest.getName().toUri()}.`
@@ -309,8 +303,11 @@ const ndnWhiteboardCtrl = function(
     request_join: function(params) {
       if ($scope.userId !== $scope.group.manager) return null;
       const requester = util.getParameterByName('id', params);
+      const requesterPublicKey = util.unserializePublicKey(
+        util.getParameterByName('publicKey', params)
+      );
       // Add requester to group and notify members of group update.
-      $scope.group.addMember(requester);
+      $scope.group.addMember(requester, requesterPublicKey);
       notifyGroupUpdate();
       // Reponse includes accept decision and all current group data.
       return createNdnData(
