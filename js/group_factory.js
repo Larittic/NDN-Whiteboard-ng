@@ -1,18 +1,21 @@
-const groupFactory = function(util) {
+const groupFactory = function(util, $httpParamSerializer) {
   // Returns a new group object.
-  return function(
+  const Group = function(
     groupId = 'empty_group_id',
     uriPrefix = 'empty_uri_prefix',
     manager = 'empty_manager',
-    encryptionPasswordLength = 16
+    passwordLength = 16,
+    nonceLength = 8
   ) {
     this.id = groupId;
     this.uri = uriPrefix + '/' + groupId;
     this.manager = manager;
     // Array of member IDs.
     this.members = [manager];
-    // Symmetric password used to encrypt data.
-    this.encryptionPassword = util.getRandomString(encryptionPasswordLength);
+    // Symmetric encryption password used to encrypt data.
+    this.password = util.getRandomString(passwordLength);
+    // Random nonce string used for verification when user requests to join.
+    this.nonce = util.getRandomString(nonceLength);
     // The whiteboard updates map. Key is [member] + '#' + [updateNum], value is
     // the update content. e.g.,
     //   key: 'A-02Y72D#1'
@@ -53,7 +56,8 @@ const groupFactory = function(util) {
         uri: this.uri,
         manager: this.manager,
         members: this.members,
-        encryptionPassword: this.encryptionPassword
+        password: this.password,
+        nonce: this.nonce
       };
     };
 
@@ -63,7 +67,8 @@ const groupFactory = function(util) {
       this.uri = groupView.uri;
       this.manager = groupView.manager;
       this.members = groupView.members;
-      this.encryptionPassword = groupView.encryptionPassword;
+      this.password = groupView.password;
+      this.nonce = groupView.nonce;
     };
 
     // Returns all whiteboard updates.
@@ -111,21 +116,27 @@ const groupFactory = function(util) {
 
     // Returns the group link that can be used by other users to join.
     this.getGroupLink = function() {
-      return this.getManagerPrefix();
-    };
-
-    // Encrypts data (string) with [this.encryptionPassword]. Returns the
-    // encrypted object in JSON string.
-    this.encryptWithPassword = function(data) {
-      return JSON.stringify(sjcl.encrypt(this.encryptionPassword, data));
-    };
-
-    // Decrypts encryptedData (JSON string) with [this.encryptionPassword].
-    // Returns the decrypted string.
-    this. decryptWithPassword = function(encryptedData) {
-      return sjcl.decrypt(this.encryptionPassword, JSON.parse(encryptedData));
+      const paramString = $httpParamSerializer({
+        password: this.password,
+        nonce: this.nonce
+      });
+      return this.getManagerPrefix() + '?' + paramString;
     };
   };
+
+  // (static) Parses the group link.
+  Group.parseGroupLink = function(groupLink) {
+    const splited = groupLink.split('?');
+    const prefix = splited[0];
+    const params = '?' + splited[1];
+    return {
+      prefix: prefix,
+      password: util.getParameterByName('password', params),
+      nonce: util.getParameterByName('nonce', params)
+    };
+  };
+
+  return Group;
 };
 
 // Register factory.

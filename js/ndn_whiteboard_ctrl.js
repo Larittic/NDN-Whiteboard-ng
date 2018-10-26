@@ -164,6 +164,13 @@ const ndnWhiteboardCtrl = function(
       return;
     }
 
+    // TODO: disable join group button before getting the join result.
+
+    // Parse group link.
+    const parsedGroupLink = Group.parseGroupLink(groupLink);
+
+    // TODO: throw error if parsing failed.
+
     // Callback to handle received data. Note that all callbacks that manipulate
     // $scope data should be wrapped in $scope.$apply() for them to be updated
     // timely.
@@ -171,7 +178,7 @@ const ndnWhiteboardCtrl = function(
       $scope.$apply(function() {
         try {
           const dataContent = JSON.parse(
-            DecryptAndVerify(data.content, $scope.userId)
+            DecryptAndVerify(data.content, parsedGroupLink.password)
           );
           if (dataContent.accept) {
             leaveGroup();
@@ -197,7 +204,6 @@ const ndnWhiteboardCtrl = function(
       console.log('Join group request timeout. Group link:', groupLink);
     };
 
-    const parsedGroupLink = parseGroupLink(groupLink);
     const interest = ndn.createInterest(
       (prefix = parsedGroupLink.prefix),
       (command = 'request_join'),
@@ -208,12 +214,6 @@ const ndnWhiteboardCtrl = function(
       (mustBeFresh = true)
     );
     ndn.sendInterest($scope.face, interest, handleData, handleTimeout);
-  };
-
-  const parseGroupLink = function(groupLink) {
-    return {
-      prefix: groupLink
-    };
   };
 
   // Leaves the current group by removing registered prefixes and notifying the
@@ -319,8 +319,7 @@ const ndnWhiteboardCtrl = function(
             accept: true,
             groupView: $scope.group.getGroupView(),
             whiteboardUpdates: $scope.group.getAllWhiteboardUpdates()
-          }),
-          requester
+          })
         )
       );
     },
@@ -494,39 +493,21 @@ const ndnWhiteboardCtrl = function(
     $scope.group.setWhiteboardUpdate(updater, update);
   };
 
-  // Signs and encrypts data (string). Returns result in string. If
-  // [encryptKeyOwner] is 'group', it uses group encryptionPassword to encrypt.
-  // If [encryptKeyOwner] is a member, it uses the member's encryption public
-  // key to encrypt.
-  const SignAndEncrypt = function(data, encryptKeyOwner = 'group') {
+  // Signs and encrypts data (string). Returns result in string.
+  const SignAndEncrypt = function(data, password = $scope.group.password) {
     // TODO: sign the data.
-    if (encryptKeyOwner === 'group') {
-      return $scope.group.encryptWithPassword(data);
-    } else {
-      // TODO: encrypt with member's encryption public key.
-      return data;
-    }
+    return JSON.stringify(sjcl.encrypt(password, data));
   };
 
   // Decrypts and verifies data (string). If succeeds, returns decrypted result
-  // in string. If decryption or verification fails, throw the error. If
-  // [encryptKeyOwner] is 'group', it uses group encryptionPassword to decrypt.
-  // If [encryptKeyOwner] is this user, it uses this user's encryption private
-  // key to decrypt. Otherwise, throw an error.
-  const DecryptAndVerify = function(data, encryptKeyOwner = 'group') {
+  // in string. If decryption or verification fails, throw the error.
+  const DecryptAndVerify = function(data, password = $scope.group.password) {
     try {
-      if (encryptKeyOwner === 'group') {
-        data = $scope.group.decryptWithPassword(data);
-      } else {
-        if (encryptKeyOwner != $scope.userId) {
-          throw new Error('Unable to decrypt data.');
-        }
-        // TODO: decrypt with member's encryption private key.
-      }
+      data = sjcl.decrypt(password, JSON.parse(data));
       // TODO: verify data.
       return data;
     } catch (error) {
-      $exceptionHandler(error);
+      throw error;
     }
   };
 

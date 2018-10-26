@@ -21,7 +21,7 @@ const utilService = function() {
     originalId = originalId.replace(' ', '_');
     if (randSuffixLength <= 0) return originalId;
     let randomId = originalId + '-' + this.getRandomString(randSuffixLength);
-    return randomId;
+    return randomId.toUpperCase();
   };
 
   // Gets parameter by name from URL string. Returns null if no parameter
