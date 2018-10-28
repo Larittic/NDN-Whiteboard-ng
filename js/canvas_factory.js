@@ -60,7 +60,7 @@ const canvasFactory = function(util) {
       while (i >= 0) {
         if (this.contentUpdates[i].time <= update.time) break;
       }
-      this.contentUpdates.splice(i + 1, 0, update);
+      this.contentUpdates.splice(i + 1, 0, util.deepcopy(update));
       return i + 1;
     };
 
