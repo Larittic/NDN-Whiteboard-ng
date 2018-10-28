@@ -1,6 +1,6 @@
 const ndnService = function($httpParamSerializer) {
   // Creates and returns interest based on input parameters. Interest name will
-  // be '[prefix]/[query]/?[serialized_params]'.
+  // be '/<prefix>/<query>/<params>'.
   this.createInterest = function(
     prefix,
     query = 'noop',

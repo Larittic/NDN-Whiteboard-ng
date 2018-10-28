@@ -181,7 +181,7 @@ const ndnWhiteboardCtrl = function(
       $scope.$apply(function() {
         try {
           const dataContent = JSON.parse(
-            decryptAndVerifyData(data.content, parsedGroupLink.password)
+            decryptAndVerifyData(data.content, parsedGroupLink.password, parsedGroupLink.managerPublicKey)
           );
           if (dataContent.accept) {
             leaveGroup();
@@ -512,20 +512,24 @@ const ndnWhiteboardCtrl = function(
   const signInterest = function(interest, nonce = $scope.group.nonce) {
     // Append signer id.
     interest.name.append($scope.userId);
-    // Compute and append signature.
+    // Compute signature based on the concatenated string of current interest
+    // name and nonce.
     const signature = $scope.signingKeyPair.sec.sign(
       sjcl.hash.sha256.hash(interest.name.toUri() + nonce)
     );
+    // Append stringified signature to interest name.
     interest.name.append(JSON.stringify(signature));
   };
 
   // Verifies interest.
+  // Interest format: '/<prefix>/<query>/<params>/<signer>/<signature>'.
   const verifyInterest = function(
     interest,
     publicKey,
     nonce = $scope.group.nonce
   ) {
     const signature = JSON.parse(util.getComponentString(interest.name, -1));
+    // PrefixUri contains: '/<prefix>/<query>/<params>/<signer>'.
     const prefixUri = interest.name.getPrefix(interest.name.size() - 1).toUri();
     return publicKey.verify(
       sjcl.hash.sha256.hash(prefixUri + nonce),
@@ -535,19 +539,41 @@ const ndnWhiteboardCtrl = function(
 
   // Signs and encrypts data (string). Returns result in string.
   const signAndEncryptData = function(data, password = $scope.group.password) {
-    // TODO: sign the data.
-    return JSON.stringify(sjcl.encrypt(password, data));
+    // Compute signature based on the concatenated string of data and signer.
+    const signature = $scope.signingKeyPair.sec.sign(
+      sjcl.hash.sha256.hash(data + $scope.userId)
+    );
+    const signedData = {
+      data: data,
+      signer: $scope.userId,
+      signature: signature
+    };
+    // Encrypt signed data and return as JSON string.
+    return JSON.stringify(sjcl.encrypt(password, JSON.stringify(signedData)));
   };
 
   // Decrypts and verifies data (string). If succeeds, returns decrypted result
   // in string. If decryption or verification fails, throw the error.
   const decryptAndVerifyData = function(
     data,
-    password = $scope.group.password
+    password = $scope.group.password,
+    publicKey = null
   ) {
-    data = sjcl.decrypt(password, JSON.parse(data));
-    // TODO: verify data.
-    return data;
+    // Decrypts data and parse as JSON.
+    const signedData = JSON.parse(sjcl.decrypt(password, JSON.parse(data)));
+    // If publicKey is not provided, look up in group member's public key.
+    if (publicKey === null) {
+      if (!$scope.group.hasMember(signedData.signer)) {
+        throw new Error('Signer not in group.');
+      }
+      publicKey = $scope.group.publicKey[signedData.signer];
+    }
+    // Verify.
+    publicKey.verify(
+      sjcl.hash.sha256.hash(signedData.data + signedData.signer),
+      signedData.signature
+    );
+    return signedData.data;
   };
 
   // Creates an NDN Data object.
