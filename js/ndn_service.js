@@ -1,23 +1,21 @@
 const ndnService = function($httpParamSerializer) {
   // Creates and returns interest based on input parameters. Interest name will
-  // be '[prefix]/[command]?[serialized_params]'.
+  // be '[prefix]/[query]/?[serialized_params]'.
   this.createInterest = function(
     prefix,
-    command = 'noop',
+    query = 'noop',
     params = {},
     lifetime = 2000,
     mustBeFresh = true
   ) {
-    const name = new Name(prefix);
-    // If [params] is not empty, append the serialized parameters to the command
-    // in the format of "[command]?[key]=[value]&...".
-    if (!angular.equals(params, {})) {
-      command += '?' + $httpParamSerializer(params);
-    }
-    // [command] must be added to [name] by calling Name.append(). If using new
-    // Name(prefix + command), ndnjs will try to decode the part before '='
-    // as decimal, which will be decoded as NaN.
-    name.append(command);
+    const name = new Name(prefix + '/' + query);
+    // Append the serialized parameters as a component in the format of
+    // "?[key]=[value]&...".
+    // The serialized parameters must be added to [name] by calling
+    // Name.append(). If using new Name(prefix + query + paramString), ndnjs
+    // will try to decode the part before '=' as decimal, which will be decoded
+    // as NaN, causing an error.
+    name.append('?' + $httpParamSerializer(params));
     const interest = new Interest(name);
     interest.setInterestLifetimeMilliseconds(lifetime);
     interest.setMustBeFresh(mustBeFresh);
@@ -80,7 +78,7 @@ const ndnService = function($httpParamSerializer) {
       interestFilterId,
       filter
     ) {
-      console.log('Receive interest:', interest.getName().toUri());
+      console.log('Receive interest:', interest.name.toString());
       // TODO: verify interest.
       // Get response by calling handleInterest().
       const response = handleInterest(interest);
@@ -89,7 +87,7 @@ const ndnService = function($httpParamSerializer) {
       // Set the data name to the same as the interest. Otherwise, the
       // response data name will not match the interest name, which will
       // result in interest timeout.
-      response.setName(interest.getName());
+      response.setName(interest.name);
       // Sign and send response.
       face.commandKeyChain.sign(
         response,
@@ -99,7 +97,7 @@ const ndnService = function($httpParamSerializer) {
             face.putData(response);
             console.log(
               'Send data of name:',
-              response.getName().toString(),
+              response.name.toString(),
               '\nData content:',
               response.getContent()
             );

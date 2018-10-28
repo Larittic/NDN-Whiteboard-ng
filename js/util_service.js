@@ -37,13 +37,11 @@ const utilService = function() {
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
   };
 
+  // TODO: delete if unused.
   // Gets query string and parameter string from an interest.
   this.getQueryAndParams = function(interest) {
     let queryString = decodeURIComponent(
-      interest
-        .getName()
-        .getSubName(-1)
-        .toUri()
+      interest.name.getSubName(-3).toUri()
     );
     queryString = queryString.substring(1, queryString.length);
     let query = queryString;
@@ -58,6 +56,24 @@ const utilService = function() {
       query: query,
       params: params
     };
+  };
+
+  // Gets the escaped string of the [index] th component in name.
+  this.getComponentString = function(name, index) {
+    index = ((index % name.size()) + name.size()) % name.size();
+    return decodeURIComponent(name.get(index).toEscapedString());
+  };
+
+  // TODO: delete if unused.
+  // Gets the uri string of subname containing [numComponent] components starting
+  // from the [start] th component (inclusive) in [name].
+  this.getSubNameUri = function(name, start, numComponent) {
+    start = ((start % name.size()) + name.size()) % name.size();
+    if (!numComponent) numComponent = name.size() - start;
+    if (numComponent <= 0 || start + numComponent > name.size()) {
+      return '';
+    }
+    return name.getSubName(start, numComponent).toUri();
   };
 
   // Serializes a public key.
