@@ -70,6 +70,12 @@ const ndnWhiteboardCtrl = function(
     );
   };
 
+  // Leaves the current group and creates a new group automatically.
+  $scope.leaveGroup = function() {
+    leaveGroup();
+    createGroup();
+  };
+
   // Copies group link to clipboard.
   $scope.shareLink = function() {
     util.copyToClipboard($scope.group.getGroupLink());
