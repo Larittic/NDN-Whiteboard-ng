@@ -30,6 +30,24 @@ const canvasFactory = function(util) {
       stroke: []
     };
 
+    // Resets all properties.
+    this.reset = function() {
+      this.clearContentUpdates();
+      this.draw = {
+        strokeStyle: 'black',
+        lineWidth: 2,
+        drawing: false
+      };
+      this.stroke = [];
+      this.lastContentUpdate = {
+        num: -1,
+        time: -1,
+        strokeStyle: 'black',
+        lineWidth: 2,
+        stroke: []
+      };
+    };
+
     // Clears canvas content.
     this.clearContentUpdates = function() {
       this.contentUpdates = [];

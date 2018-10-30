@@ -208,9 +208,7 @@ const ndnWhiteboardCtrl = function(
       (params = {
         id: $scope.userId,
         publicKey: util.serializePublicKey($scope.signingKeyPair.pub)
-      }),
-      (lifetime = 2000),
-      (mustBeFresh = true)
+      })
     );
     signInterest(interest, parsedGroupLink.nonce);
     ndn.sendInterest($scope.face, interest, handleData, handleTimeout);
@@ -241,9 +239,7 @@ const ndnWhiteboardCtrl = function(
           (query = 'manager_leave'),
           (params = {
             id: $scope.userId
-          }),
-          (lifetime = 2000),
-          (mustBeFresh = true)
+          })
         );
       }
     } else {
@@ -252,9 +248,7 @@ const ndnWhiteboardCtrl = function(
         (query = 'notify_leave'),
         (params = {
           id: $scope.userId
-        }),
-        (lifetime = 2000),
-        (mustBeFresh = true)
+        })
       );
     }
     if (interest) {
@@ -263,7 +257,7 @@ const ndnWhiteboardCtrl = function(
     }
 
     // Clear canvas content and reset last update number.
-    $scope.canvas.clearContentUpdates();
+    $scope.canvas.reset();
     $scope.canvasLastUpdateNum = -1;
     // Reset as empty group.
     $scope.group = new Group();
@@ -373,9 +367,7 @@ const ndnWhiteboardCtrl = function(
         (query = 'group_view'),
         (params = {
           id: $scope.userId
-        }),
-        (lifetime = 2000),
-        (mustBeFresh = true)
+        })
       );
       signInterest(interest);
       ndn.sendInterest(
@@ -421,9 +413,7 @@ const ndnWhiteboardCtrl = function(
         (params = {
           id: $scope.userId,
           num: updateNum
-        }),
-        (lifetime = 2000),
-        (mustBeFresh = false)
+        })
       );
       signInterest(interest);
       ndn.sendInterest(
@@ -469,9 +459,7 @@ const ndnWhiteboardCtrl = function(
         (query = 'notify_group_update'),
         (params = {
           id: $scope.userId
-        }),
-        (lifetime = 2000),
-        (mustBeFresh = true)
+        })
       );
       signInterest(interest);
       ndn.sendInterest($scope.face, interest);
@@ -488,9 +476,7 @@ const ndnWhiteboardCtrl = function(
         (params = {
           id: $scope.userId,
           num: updateNum
-        }),
-        (lifetime = 2000),
-        (mustBeFresh = true)
+        })
       );
       signInterest(interest);
       ndn.sendInterest($scope.face, interest);
