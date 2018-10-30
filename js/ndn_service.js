@@ -1,27 +1,4 @@
 const ndnService = function($httpParamSerializer) {
-  // Creates and returns interest based on input parameters. Interest name will
-  // be '/<prefix>/<query>/<params>'.
-  this.createInterest = function(
-    prefix,
-    query = 'noop',
-    params = {},
-    lifetime = 2000,
-    mustBeFresh = true
-  ) {
-    const name = new Name(prefix + '/' + query);
-    // Append the serialized parameters as a component in the format of
-    // "?[key]=[value]&...".
-    // The serialized parameters must be added to [name] by calling
-    // Name.append(). If using new Name(prefix + query + paramString), ndnjs
-    // will try to decode the part before '=' as decimal, which will be decoded
-    // as NaN, causing an error.
-    name.append('?' + $httpParamSerializer(params));
-    const interest = new Interest(name);
-    interest.setInterestLifetimeMilliseconds(lifetime);
-    interest.setMustBeFresh(mustBeFresh);
-    return interest;
-  };
-
   // Sends [interest] through [face]. [retry] is the remaining retry times
   // after timeout.
   this.sendInterest = function(

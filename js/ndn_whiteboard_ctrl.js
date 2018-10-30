@@ -2,6 +2,7 @@ const ndnWhiteboardCtrl = function(
   $scope,
   $window,
   $exceptionHandler,
+  $httpParamSerializer,
   /* util service */ util,
   /* ndn service */ ndn,
   /* Group factory */ Group,
@@ -201,7 +202,7 @@ const ndnWhiteboardCtrl = function(
       console.log('Join group request timeout. Group link:', groupLink);
     };
 
-    const interest = ndn.createInterest(
+    const interest = createInterest(
       (prefix = parsedGroupLink.prefix),
       (query = 'request_join'),
       (params = {
@@ -235,7 +236,7 @@ const ndnWhiteboardCtrl = function(
     if ($scope.userId === $scope.group.manager) {
       const newManager = $scope.group.pickNewManager();
       if (newManager) {
-        interest = ndn.createInterest(
+        interest = createInterest(
           (prefix = $scope.group.getMemberPrefix(newManager)),
           (query = 'manager_leave'),
           (params = {
@@ -246,7 +247,7 @@ const ndnWhiteboardCtrl = function(
         );
       }
     } else {
-      interest = ndn.createInterest(
+      interest = createInterest(
         (prefix = $scope.group.getManagerPrefix()),
         (query = 'notify_leave'),
         (params = {
@@ -367,7 +368,7 @@ const ndnWhiteboardCtrl = function(
       // Send interest to retrieve current group view. Note that we cannot use
       // getManagerPrefix() as prefix here because there might be a manager role
       // transferring.
-      const interest = ndn.createInterest(
+      const interest = createInterest(
         (prefix = $scope.group.getMemberPrefix(senderId)),
         (query = 'group_view'),
         (params = {
@@ -414,7 +415,7 @@ const ndnWhiteboardCtrl = function(
           $exceptionHandler(error);
         }
       };
-      const interest = ndn.createInterest(
+      const interest = createInterest(
         (prefix = $scope.group.getMemberPrefix(senderId)),
         (query = 'whiteboard_update'),
         (params = {
@@ -463,7 +464,7 @@ const ndnWhiteboardCtrl = function(
   const notifyGroupUpdate = function() {
     for (member of $scope.group.members) {
       if (member === $scope.userId) continue;
-      const interest = ndn.createInterest(
+      const interest = createInterest(
         (prefix = $scope.group.getMemberPrefix(member)),
         (query = 'notify_group_update'),
         (params = {
@@ -481,7 +482,7 @@ const ndnWhiteboardCtrl = function(
   const notifyWhiteboardUpdate = function(updateNum) {
     for (member of $scope.group.members) {
       if (member === $scope.userId) continue;
-      const interest = ndn.createInterest(
+      const interest = createInterest(
         (prefix = $scope.group.getMemberPrefix(member)),
         (query = 'notify_whiteboard_update'),
         (params = {
@@ -499,6 +500,29 @@ const ndnWhiteboardCtrl = function(
   // Saves the last canvas drawing to group whiteboard updates.
   const saveWhiteboardUpdate = function(updater, update) {
     $scope.group.setWhiteboardUpdate(updater, update);
+  };
+
+  // Creates interest based on input parameters. Interest name will be
+  // '/<prefix>/<query>/<params>'.
+  const createInterest = function(
+    prefix,
+    query = 'noop',
+    params = {},
+    lifetime = 2000,
+    mustBeFresh = true
+  ) {
+    const name = new Name(prefix + '/' + query);
+    // Append the serialized parameters as a component in the format of
+    // "?[key]=[value]&...".
+    // The serialized parameters must be added to [name] by calling
+    // Name.append(). If using new Name(prefix + query + paramString), ndnjs
+    // will try to decode the part before '=' as decimal, which will be decoded
+    // as NaN, causing an error.
+    name.append('?' + $httpParamSerializer(params));
+    const interest = new Interest(name);
+    interest.setInterestLifetimeMilliseconds(lifetime);
+    interest.setMustBeFresh(mustBeFresh);
+    return interest;
   };
 
   // Signs interest by hashing the interest name and appending the signature to
