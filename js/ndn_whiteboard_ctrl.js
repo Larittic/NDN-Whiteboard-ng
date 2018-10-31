@@ -182,7 +182,11 @@ const ndnWhiteboardCtrl = function(
       $scope.$apply(function() {
         try {
           const dataContent = JSON.parse(
-            decryptAndVerifyData(data.content, parsedGroupLink.password, parsedGroupLink.managerPublicKey)
+            decryptAndVerifyData(
+              data.content,
+              parsedGroupLink.password,
+              parsedGroupLink.managerPublicKey
+            )
           );
           if (dataContent.accept) {
             leaveGroup();
@@ -214,9 +218,12 @@ const ndnWhiteboardCtrl = function(
       (params = {
         id: $scope.userId,
         publicKey: util.serializePublicKey($scope.signingKeyPair.pub)
-      })
+      }),
+      (mustBeFresh = true),
+      (lifetime = 2000),
+      (signBeforeReturn = true),
+      (nonce = parsedGroupLink.nonce)
     );
-    signInterest(interest, parsedGroupLink.nonce);
     ndn.sendInterest($scope.face, interest, handleData, handleTimeout);
   };
 
@@ -235,7 +242,7 @@ const ndnWhiteboardCtrl = function(
 
     // If the user is group manager, send manager_leave interest to another
     // member who will become the new manager and notify the group. Otherwise,
-    // send notify_leave to group manager.
+    // send member_leave to group manager.
     let interest = null;
     if ($scope.userId === $scope.group.manager) {
       const newManager = $scope.group.pickNewManager();
@@ -251,14 +258,13 @@ const ndnWhiteboardCtrl = function(
     } else {
       interest = createInterest(
         (prefix = $scope.group.getManagerPrefix()),
-        (query = 'notify_leave'),
+        (query = 'member_leave'),
         (params = {
           id: $scope.userId
         })
       );
     }
     if (interest) {
-      signInterest(interest);
       ndn.sendInterest($scope.face, interest);
     }
 
@@ -278,17 +284,9 @@ const ndnWhiteboardCtrl = function(
         try {
           const query = util.getComponentString(interest.name, -4);
           const params = util.getComponentString(interest.name, -3);
-          // Verify interest.
-          const signer = util.getComponentString(interest.name, -2);
-          const publicKey = $scope.group.hasMember(signer)
-            ? $scope.group.publicKey[signer]
-            : util.unserializePublicKey(
-              util.getParameterByName('publicKey', params)
-            );
-          verifyInterest(interest, publicKey);
           // Call corresponding handler if exists.
           if (query in interestHandler) {
-            return interestHandler[query](params);
+            return interestHandler[query](interest, params);
           }
           return null;
         } catch (error) {
@@ -308,8 +306,13 @@ const ndnWhiteboardCtrl = function(
   // Interest handlers classified by query strings.
   const interestHandler = {
     // Handler for 'request_join' interest. Only manager will call it.
-    request_join: function(params) {
+    request_join: function(receivedInterest, params) {
       if ($scope.userId !== $scope.group.manager) return null;
+      // Verify interest.
+      const publicKey = util.unserializePublicKey(
+        util.getParameterByName('publicKey', params)
+      );
+      verifyInterest(receivedInterest, publicKey);
       const requester = util.getParameterByName('id', params);
       const requesterPublicKey = util.unserializePublicKey(
         util.getParameterByName('publicKey', params)
@@ -329,9 +332,13 @@ const ndnWhiteboardCtrl = function(
       );
     },
 
-    // Handler for 'notify_leave' interest. Only manager will call it.
-    notify_leave: function(params) {
+    // Handler for 'member_leave' interest. Only manager will call it.
+    member_leave: function(receivedInterest, params) {
       if ($scope.userId !== $scope.group.manager) return null;
+      // Verify interest.
+      const signer = util.getComponentString(receivedInterest.name, -2);
+      const publicKey = $scope.group.publicKey[signer];
+      verifyInterest(receivedInterest, publicKey);
       const leaver = util.getParameterByName('id', params);
       // Remove leaver from group and notify members of group update.
       $scope.group.removeMember(leaver);
@@ -339,8 +346,12 @@ const ndnWhiteboardCtrl = function(
       return createNdnData(signAndEncryptData('ACK'));
     },
 
-    // Handler for 'manager_leavel interest.
-    manager_leave: function(params) {
+    // Handler for 'manager_leavel' interest.
+    manager_leave: function(receivedInterest, params) {
+      // Verify interest.
+      const signer = util.getComponentString(receivedInterest.name, -2);
+      const publicKey = $scope.group.publicKey[signer];
+      verifyInterest(receivedInterest, publicKey);
       const previousManager = util.getParameterByName('id', params);
       // Remove the previous manager from group and take over the manager role.
       $scope.group.removeMember(previousManager);
@@ -351,7 +362,11 @@ const ndnWhiteboardCtrl = function(
     },
 
     // Handler for 'notify_group_update' interest.
-    notify_group_update: function(params) {
+    notify_group_update: function(receivedInterest, params) {
+      // Verify interest.
+      const signer = util.getComponentString(receivedInterest.name, -2);
+      const publicKey = $scope.group.publicKey[signer];
+      verifyInterest(receivedInterest, publicKey);
       const senderId = util.getParameterByName('id', params);
       // Callback to handle received data.
       const handleData = function(interest, data) {
@@ -375,7 +390,6 @@ const ndnWhiteboardCtrl = function(
           id: $scope.userId
         })
       );
-      signInterest(interest);
       ndn.sendInterest(
         $scope.face,
         interest,
@@ -387,14 +401,22 @@ const ndnWhiteboardCtrl = function(
     },
 
     // Handler for 'group_view' interest.
-    group_view: function(params) {
+    group_view: function(receivedInterest, params) {
+      // Verify interest.
+      const signer = util.getComponentString(receivedInterest.name, -2);
+      const publicKey = $scope.group.publicKey[signer];
+      verifyInterest(receivedInterest, publicKey);
       return createNdnData(
         signAndEncryptData(JSON.stringify($scope.group.getGroupView()))
       );
     },
 
     // Handler for 'notify_whiteboard_update' interest.
-    notify_whiteboard_update: function(params) {
+    notify_whiteboard_update: function(receivedInterest, params) {
+      // Verify interest.
+      const signer = util.getComponentString(receivedInterest.name, -2);
+      const publicKey = $scope.group.publicKey[signer];
+      verifyInterest(receivedInterest, publicKey);
       const senderId = util.getParameterByName('id', params);
       const updateNum = util.getParameterByName('num', params);
       // TODO: send interest to fetch the update and possibily missing updates
@@ -417,11 +439,12 @@ const ndnWhiteboardCtrl = function(
         (prefix = $scope.group.getMemberPrefix(senderId)),
         (query = 'whiteboard_update'),
         (params = {
-          id: $scope.userId,
           num: updateNum
-        })
+        }),
+        (mustBeFresh = false),
+        (lifetime = 2000),
+        (signBeforeReturn = false)
       );
-      signInterest(interest);
       ndn.sendInterest(
         $scope.face,
         interest,
@@ -433,14 +456,15 @@ const ndnWhiteboardCtrl = function(
     },
 
     // Handler for 'all_whiteboard_updates' interest.
-    all_whiteboard_updates: function(params) {
+    all_whiteboard_updates: function(receivedInterest, params) {
       // TODO: handle interest.
       return null;
     },
 
-    // Handler for 'whiteboard_update' interest.
-    whiteboard_update: function(params) {
-      const senderId = util.getParameterByName('id', params);
+    // Handler for 'whiteboard_update' interest. 'whiteboard_update' interest
+    // does not need to be signed so that the cached data can be used to respond
+    // to 'whiteboard_update' interests from others.
+    whiteboard_update: function(receivedInterest, params) {
       const updateNum = util.getParameterByName('num', params);
       return createNdnData(
         signAndEncryptData(
@@ -467,7 +491,6 @@ const ndnWhiteboardCtrl = function(
           id: $scope.userId
         })
       );
-      signInterest(interest);
       ndn.sendInterest($scope.face, interest);
     }
   };
@@ -484,7 +507,6 @@ const ndnWhiteboardCtrl = function(
           num: updateNum
         })
       );
-      signInterest(interest);
       ndn.sendInterest($scope.face, interest);
     }
   };
@@ -500,8 +522,10 @@ const ndnWhiteboardCtrl = function(
     prefix,
     query = 'noop',
     params = {},
+    mustBeFresh = true,
     lifetime = 2000,
-    mustBeFresh = true
+    signBeforeReturn = true,
+    nonce = $scope.group.nonce
   ) {
     const name = new Name(prefix + '/' + query);
     // Append the serialized parameters as a component in the format of
@@ -512,8 +536,16 @@ const ndnWhiteboardCtrl = function(
     // as NaN, causing an error.
     name.append('?' + $httpParamSerializer(params));
     const interest = new Interest(name);
-    interest.setInterestLifetimeMilliseconds(lifetime);
     interest.setMustBeFresh(mustBeFresh);
+    interest.setInterestLifetimeMilliseconds(lifetime);
+    // If [signBeforeReturn] is true, sign the interest. Otherwise, put placeholder at the
+    // end of interest name.
+    if (signBeforeReturn) {
+      signInterest(interest, nonce);
+    } else {
+      interest.name.append('nosginer');
+      interest.name.append('nosignature');
+    }
     return interest;
   };
 
