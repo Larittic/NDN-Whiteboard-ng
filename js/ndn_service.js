@@ -61,10 +61,6 @@ const ndnService = function() {
       const response = handleInterest(interest);
       // If response is null, do not send any response.
       if (response === null) return;
-      // Set the data name to the same as the interest. Otherwise, the
-      // response data name will not match the interest name, which will
-      // result in interest timeout.
-      response.setName(interest.name);
       // Sign and send response.
       face.commandKeyChain.sign(
         response,
