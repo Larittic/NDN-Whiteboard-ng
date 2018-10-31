@@ -1,4 +1,4 @@
-const ndnService = function($httpParamSerializer) {
+const ndnService = function() {
   // Sends [interest] through [face]. [retry] is the remaining retry times
   // after timeout.
   this.sendInterest = function(
