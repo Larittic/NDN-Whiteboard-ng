@@ -6,7 +6,7 @@ const ndnService = function($exceptionHandler) {
   // e.g.,
   //  key = 'ndn/abc';
   //  value = {
-  //    segmentNum: Data(3),
+  //    segmentNum: Data(segmented: true, segmentNum: 3),
   //    segmentData: [Data('a'), Data('b'), Data('c')]
   //  }
   this.segmentedDataMap = {};
@@ -162,8 +162,8 @@ const ndnService = function($exceptionHandler) {
       }
     }
     // Delete all the prefixId entries in [this.prefixIdToNameMap].
-    for (const i in prefixIdsToDelete) {
-      delete this.prefixIdToNameMap[prefixIdsToDelete[i]];
+    for (const prefixId of prefixIdsToDelete) {
+      delete this.prefixIdToNameMap[prefixId];
     }
   };
 
