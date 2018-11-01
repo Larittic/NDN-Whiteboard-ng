@@ -217,7 +217,8 @@ const ndnWhiteboardCtrl = function(
       (query = 'request_join'),
       (params = {
         id: $scope.userId,
-        publicKey: util.serializePublicKey($scope.signingKeyPair.pub)
+        publicKey: util.serializePublicKey($scope.signingKeyPair.pub),
+        time: new Date().getTime()
       }),
       (mustBeFresh = true),
       (lifetime = 2000),
@@ -251,7 +252,8 @@ const ndnWhiteboardCtrl = function(
           (prefix = $scope.group.getMemberPrefix(newManager)),
           (query = 'manager_leave'),
           (params = {
-            id: $scope.userId
+            id: $scope.userId,
+            time: new Date().getTime()
           })
         );
       }
@@ -260,7 +262,8 @@ const ndnWhiteboardCtrl = function(
         (prefix = $scope.group.getManagerPrefix()),
         (query = 'member_leave'),
         (params = {
-          id: $scope.userId
+          id: $scope.userId,
+          time: new Date().getTime()
         })
       );
     }
@@ -394,7 +397,8 @@ const ndnWhiteboardCtrl = function(
         (prefix = $scope.group.getMemberPrefix(senderId)),
         (query = 'group_view'),
         (params = {
-          id: $scope.userId
+          id: $scope.userId,
+          time: new Date().getTime()
         })
       );
       ndn.sendInterest(
@@ -505,7 +509,8 @@ const ndnWhiteboardCtrl = function(
         (prefix = $scope.group.getMemberPrefix(member)),
         (query = 'notify_group_update'),
         (params = {
-          id: $scope.userId
+          id: $scope.userId,
+          time: new Date().getTime()
         })
       );
       ndn.sendInterest($scope.face, interest);
@@ -521,7 +526,8 @@ const ndnWhiteboardCtrl = function(
         (query = 'notify_whiteboard_update'),
         (params = {
           id: $scope.userId,
-          num: updateNum
+          num: updateNum,
+          time: new Date().getTime()
         })
       );
       ndn.sendInterest($scope.face, interest);
