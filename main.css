@@ -1,15 +1,20 @@
 body {
-  background-color: #f5f5f5;
   overflow: hidden;
+  min-width: 1200px;
+  width: auto !important;
+  width: 1200px;
+  min-height: 900px;
+  height: auto !important;
+  height: 900px;
 }
 
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */
-    -webkit-user-select: none; /* Safari */
-     -khtml-user-select: none; /* Konqueror HTML */
-       -moz-user-select: none; /* Firefox */
-        -ms-user-select: none; /* Internet Explorer/Edge */
-            user-select: none; /* Non-prefixed version, currently
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome and Opera */
 }
 
@@ -43,9 +48,4 @@ body {
 #submit-setting {
   padding: 10px;
   margin-top: 24px;
-}
-
-#canvas {
-  background-color: rgb(255, 255, 255);
-  border: 1px solid #d3d3d3;
 }
