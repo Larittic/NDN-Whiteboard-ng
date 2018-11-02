@@ -147,7 +147,7 @@ const ndnWhiteboardCtrl = function(
   // Creates a new group as the initial manager and registers member prefix.
   const createGroup = function() {
     $scope.group = new Group(
-      /*groupId=*/ util.getRandomId('group', 6),
+      /*groupId=*/ util.getRandomId('Group', 6),
       /*uriPrefix=*/ config.URI_PREFIX,
       /*manager=*/ $scope.userId,
       /*managerPublicKey=*/ $scope.signingKeyPair.pub
