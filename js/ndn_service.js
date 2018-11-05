@@ -18,6 +18,7 @@ const ndnService = function($exceptionHandler) {
   // after timeout.
   this.sendInterest = function(
     face,
+    validator,
     interest,
     handleData = () => {},
     handleTimeout = () => {},
@@ -25,29 +26,42 @@ const ndnService = function($exceptionHandler) {
   ) {
     // On-data callback.
     const onData = function(interest, data) {
-      // TODO: verify data integrity.
       console.log(
         'Receive data for interest:',
         interest.name.toUri(),
         '\nData content:',
         data.content.toString()
       );
-      // If the data name's last component is 'segmented', it means that this
-      // data only contains the numebr of segments. Send interests for every
-      // segment respectively and concatenate them to form the complete data
-      // before calling handleData.
-      if (data.name.get(-1).toEscapedString() === 'segmented') {
-        const segmentNum = JSON.parse(data.content).segmentNum;
-        fetchSegmentedData(
-          face,
-          interest,
-          segmentNum,
-          handleData,
-          handleTimeout
-        );
-      } else {
-        handleData(interest, data);
-      }
+      validator.validate(
+        data,
+        /*successCallback=*/ function(data) {
+          // If the data name's last component is 'segmented', it means that this
+          // data only contains the numebr of segments. Send interests for every
+          // segment respectively and concatenate them to form the complete data
+          // before calling handleData.
+          if (data.name.get(-1).toEscapedString() === 'segmented') {
+            const segmentNum = JSON.parse(data.content).segmentNum;
+            fetchSegmentedData(
+              face,
+              validator,
+              interest,
+              segmentNum,
+              handleData,
+              handleTimeout
+            );
+          } else {
+            handleData(interest, data);
+          }
+        },
+        /*failureCallback=*/ function(data, reason) {
+          console.log(
+            'Validation of data',
+            data.name.toUri(),
+            'failed for reason:',
+            reason
+          );
+        }
+      );
     };
 
     // On-timeout callback.
@@ -60,7 +74,14 @@ const ndnService = function($exceptionHandler) {
         interest.setInterestLifetimeMilliseconds(
           2 * interest.getInterestLifetimeMilliseconds()
         );
-        this.sendInterest(face, interest, handleData, handleTimeout, retry - 1);
+        this.sendInterest(
+          face,
+          validator,
+          interest,
+          handleData,
+          handleTimeout,
+          retry - 1
+        );
       }
     }.bind(this);
 
@@ -170,6 +191,7 @@ const ndnService = function($exceptionHandler) {
   // Fetches segmented data.
   const fetchSegmentedData = function(
     face,
+    validator,
     originalInterest,
     segmentNum,
     finalHandleData,
@@ -187,6 +209,7 @@ const ndnService = function($exceptionHandler) {
       interest.name.append(i.toString());
       this.sendInterest(
         face,
+        validator,
         interest,
         (function() {
           const j = i;

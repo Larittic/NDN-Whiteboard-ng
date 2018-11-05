@@ -49,6 +49,8 @@ const ndnWhiteboardCtrl = function(
     $scope.canvasLastUpdateNum = -1;
     // Create NDN face.
     $scope.face = new Face({ host: $scope.nfdHost });
+    // Create validator to validate data.
+    $scope.validator = new Validator(new ValidationPolicyAcceptAll());
     // Create NDN key chain.
     $scope.keyChain = new KeyChain('pib-memory:', 'tpm-memory:');
     // Create default identity and set it as command signing info.
@@ -229,7 +231,13 @@ const ndnWhiteboardCtrl = function(
       /*signBeforeReturn=*/ true,
       /*nonce=*/ parsedGroupLink.nonce
     );
-    ndn.sendInterest($scope.face, interest, handleData, handleTimeout);
+    ndn.sendInterest(
+      $scope.face,
+      $scope.validator,
+      interest,
+      handleData,
+      handleTimeout
+    );
   };
 
   // Leaves the current group by removing registered prefixes and notifying the
@@ -272,7 +280,7 @@ const ndnWhiteboardCtrl = function(
       );
     }
     if (interest) {
-      ndn.sendInterest($scope.face, interest);
+      ndn.sendInterest($scope.face, $scope.validator, interest);
     }
 
     // Clear canvas content and reset last update number.
@@ -407,6 +415,7 @@ const ndnWhiteboardCtrl = function(
       );
       ndn.sendInterest(
         $scope.face,
+        $scope.validator,
         interest,
         handleData,
         /*handleTimeout=*/ () => {}
@@ -467,6 +476,7 @@ const ndnWhiteboardCtrl = function(
       );
       ndn.sendInterest(
         $scope.face,
+        $scope.validator,
         interest,
         handleData,
         /*handleTimeout=*/ () => {}
@@ -515,7 +525,7 @@ const ndnWhiteboardCtrl = function(
           time: new Date().getTime()
         }
       );
-      ndn.sendInterest($scope.face, interest);
+      ndn.sendInterest($scope.face, $scope.validator, interest);
     }
   };
 
@@ -532,7 +542,7 @@ const ndnWhiteboardCtrl = function(
           time: new Date().getTime()
         }
       );
-      ndn.sendInterest($scope.face, interest);
+      ndn.sendInterest($scope.face, $scope.validator, interest);
     }
   };
 
