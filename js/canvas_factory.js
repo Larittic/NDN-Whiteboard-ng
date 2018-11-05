@@ -1,4 +1,4 @@
-const canvasFactory = function(util) {
+const canvasFactory = function(util, config) {
   // Returns a canvas object that can draw on canvasElement.
   return function(canvasElement) {
     // The canvas element properties.
@@ -11,41 +11,41 @@ const canvasFactory = function(util) {
     // All canvas content updates in time order.
     this.contentUpdates = [];
 
+    // Last update.
+    this.lastContentUpdate = {
+      num: -1,
+      time: -1,
+      strokeStyle: config.STROKE_STYLE_OPTIONS[0],
+      lineWidth: config.LINE_WIDTH_OPTIONS[0],
+      stroke: []
+    };
+
     // Current draw state.
     this.draw = {
-      strokeStyle: 'black',
-      lineWidth: 2,
+      strokeStyle: config.STROKE_STYLE_OPTIONS[0],
+      lineWidth: config.LINE_WIDTH_OPTIONS[0],
       drawing: false
     };
 
     // Current stroke points.
     this.stroke = [];
 
-    // Last update.
-    this.lastContentUpdate = {
-      num: -1,
-      time: -1,
-      strokeStyle: 'black',
-      lineWidth: 2,
-      stroke: []
-    };
-
     // Resets all properties.
     this.reset = function() {
       this.clearContentUpdates();
-      this.draw = {
-        strokeStyle: 'black',
-        lineWidth: 2,
-        drawing: false
-      };
-      this.stroke = [];
       this.lastContentUpdate = {
         num: -1,
         time: -1,
-        strokeStyle: 'black',
-        lineWidth: 2,
+        strokeStyle: config.STROKE_STYLE_OPTIONS[0],
+        lineWidth: config.LINE_WIDTH_OPTIONS[0],
         stroke: []
       };
+      this.draw = {
+        strokeStyle: config.STROKE_STYLE_OPTIONS[0],
+        lineWidth: config.LINE_WIDTH_OPTIONS[0],
+        drawing: false
+      };
+      this.stroke = [];
     };
 
     // Clears canvas content.

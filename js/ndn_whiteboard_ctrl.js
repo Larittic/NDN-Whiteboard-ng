@@ -17,6 +17,10 @@ const ndnWhiteboardCtrl = function(
   $scope.logCanvas = function() {
     console.log($scope.canvas);
   };
+  
+  // Load config constants.
+  $scope.STROKE_STYLE_OPTIONS = config.STROKE_STYLE_OPTIONS;
+  $scope.LINE_WIDTH_OPTIONS = config.LINE_WIDTH_OPTIONS;
 
   // Show setting and hide whiteboard in the beginning.
   $scope.showSetting = true;

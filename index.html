@@ -70,21 +70,14 @@
               <div class='input-group-prepend'>
                 <label class='input-group-text'>Color</label>
               </div>
-              <select class='custom-select'>
-                <option selected>Choose...</option>
-                <option value='black'>Black</option>
-                <option value='white'>White</option>
+              <select ng-options='color for color in STROKE_STYLE_OPTIONS' ng-model='canvas.draw.strokeStyle' class='custom-select'>
               </select>
             </div>
             <div class='input-group input-group-sm col-2'>
               <div class='input-group-prepend'>
                 <label class='input-group-text'>Line width</label>
               </div>
-              <select class='custom-select'>
-                <option selected>Choose...</option>
-                <option value='2'>2</option>
-                <option value='4'>4</option>
-                <option value='6'>6</option>
+              <select ng-options='lineWidth for lineWidth in LINE_WIDTH_OPTIONS' ng-model='canvas.draw.lineWidth' class='custom-select'>
               </select>
             </div>
           </div> <!-- Toobar end -->
