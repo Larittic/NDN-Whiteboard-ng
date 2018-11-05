@@ -80,11 +80,13 @@ const ndnWhiteboardCtrl = function(
   $scope.leaveGroup = function() {
     leaveGroup();
     createGroup();
+    // TODO: show message of leaving original group and creating new group.
   };
 
   // Copies group link to clipboard.
   $scope.shareLink = function() {
     util.copyToClipboard($scope.group.getGroupLink());
+    // TODO: show message of link copied.
   };
 
   // Tries to join an existing group through group link.
@@ -169,18 +171,18 @@ const ndnWhiteboardCtrl = function(
   // Tries to join an existing group through group link.
   const joinGroup = function() {
     const groupLink = $scope.groupLink;
+    // TODO: Check group link. If it is invalid, show error message and return.
     if (groupLink === $scope.group.getGroupLink()) {
       console.log('Already in group. Group link:', groupLink);
       return;
     }
-
-    // TODO: disable join group button before getting the join result.
-
     // Parse group link.
     const parsedGroupLink = Group.parseGroupLink(groupLink);
 
     // TODO: throw error if parsing failed.
 
+    // Disable join group button until getting the join result.
+    $scope.disableJoinGroup = true;
     // Callback to handle received data. Note that all callbacks that manipulate
     // $scope data should be wrapped in $scope.$apply() for them to be updated
     // timely.
@@ -208,14 +210,22 @@ const ndnWhiteboardCtrl = function(
             console.log('Join group request rejected. Group link:', groupLink);
           }
         } catch (error) {
+          // TODO: show error message.
           $exceptionHandler(error);
+        } finally {
+          // Enable join group button.
+          $scope.disableJoinGroup = false;
         }
       });
     };
 
     // Callback to handle timeout.
     const handleTimeout = function(interest) {
-      console.log('Join group request timeout. Group link:', groupLink);
+      $scope.$apply(function() {
+        console.log('Join group request timeout. Group link:', groupLink);
+        // Enable join group button.
+        $scope.disableJoinGroup = false;
+      });
     };
 
     const interest = createInterest(
@@ -238,6 +248,8 @@ const ndnWhiteboardCtrl = function(
       handleData,
       handleTimeout
     );
+    
+    // TODO: show message of join request sent.
   };
 
   // Leaves the current group by removing registered prefixes and notifying the

@@ -52,7 +52,7 @@
           <div class='input-group col-3 ml-auto'>
             <input ng-model='groupLink' type='text' class='form-control' placeholder='Group Link'>
             <div class='input-group-append'>
-              <button ng-click='joinGroup()' type='button' class='btn btn-outline-light'>Join</button>
+              <button ng-disabled='disableJoinGroup' ng-click='joinGroup()' type='button' class='btn btn-outline-light'>Join</button>
             </div>
           </div>
         </div>
