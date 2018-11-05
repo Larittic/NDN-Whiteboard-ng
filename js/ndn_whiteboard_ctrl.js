@@ -17,8 +17,8 @@ const ndnWhiteboardCtrl = function(
   $scope.logCanvas = function() {
     console.log($scope.canvas);
   };
-  
-  // Load config constants.
+
+  // Load config constants into [$scope] so that they can be used in html.
   $scope.STROKE_STYLE_OPTIONS = config.STROKE_STYLE_OPTIONS;
   $scope.LINE_WIDTH_OPTIONS = config.LINE_WIDTH_OPTIONS;
 

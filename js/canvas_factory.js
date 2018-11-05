@@ -1,5 +1,5 @@
 const canvasFactory = function(util, config) {
-  // Returns a canvas object that can draw on canvasElement.
+  // Returns a canvas object that can draw on [canvasElement].
   return function(canvasElement) {
     // The canvas element properties.
     this.width = canvasElement.width;
@@ -71,12 +71,13 @@ const canvasFactory = function(util, config) {
       }
     };
 
-    // Inserts [update] into [this.contentUpdates] according to ascending time order. Return the
-    // insert index.
+    // Inserts [update] into [this.contentUpdates] according to ascending time
+    // order. Return the insert index.
     this.insertContentUpdate = function(update) {
       let i = this.contentUpdates.length - 1;
       while (i >= 0) {
         if (this.contentUpdates[i].time <= update.time) break;
+        i--;
       }
       this.contentUpdates.splice(i + 1, 0, util.deepcopy(update));
       return i + 1;
@@ -84,9 +85,16 @@ const canvasFactory = function(util, config) {
 
     // Applies a new content update.
     this.applyContentUpdate = function(update) {
-      this.insertContentUpdate(update);
-      this.drawStroke(update.stroke, update.lineWidth, update.strokeStyle);
-      // TODO: reconcile according to insert index. e.g., different colors.
+      const insertIndex = this.insertContentUpdate(update);
+      // Reconcile by redrawing every update starting from the insert index in
+      // order.
+      for (let i = insertIndex; i < this.contentUpdates.length; i++) {
+        this.drawStroke(
+          this.contentUpdates[i].stroke,
+          this.contentUpdates[i].lineWidth,
+          this.contentUpdates[i].strokeStyle
+        );
+      }
     };
 
     // Returns the last content update.
