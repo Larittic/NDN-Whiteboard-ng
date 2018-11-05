@@ -24,7 +24,11 @@ const canvasFactory = function(util, config) {
     this.draw = {
       strokeStyle: config.STROKE_STYLE_OPTIONS[0],
       lineWidth: config.LINE_WIDTH_OPTIONS[0],
-      drawing: false
+      drawing: false,
+      pos: {
+        x: 0,
+        y: 0
+      }
     };
 
     // Current stroke points.
@@ -43,7 +47,11 @@ const canvasFactory = function(util, config) {
       this.draw = {
         strokeStyle: config.STROKE_STYLE_OPTIONS[0],
         lineWidth: config.LINE_WIDTH_OPTIONS[0],
-        drawing: false
+        drawing: false,
+        pos: {
+          x: 0,
+          y: 0
+        }
       };
       this.stroke = [];
     };
@@ -119,8 +127,10 @@ const canvasFactory = function(util, config) {
 
     // Handles mouseleave event.
     this.mouseleave = function(event) {
+      // Update position of draw.
+      this.draw.pos = this.getPoint(event);
       if (!this.draw.drawing) return;
-      const curPoint = this.getPoint(event);
+      const curPoint = this.draw.pos;
       const lastPoint = this.stroke[this.stroke.length - 1];
       this.drawLine(
         lastPoint,
@@ -136,8 +146,10 @@ const canvasFactory = function(util, config) {
 
     // Handles mousemove event.
     this.mousemove = function(event) {
+      // Update position of draw.
+      this.draw.pos = this.getPoint(event);
       if (!this.draw.drawing) return;
-      const curPoint = this.getPoint(event);
+      const curPoint = this.draw.pos;
       const lastPoint = this.stroke[this.stroke.length - 1];
       this.drawLine(
         lastPoint,

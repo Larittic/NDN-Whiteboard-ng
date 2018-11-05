@@ -1,11 +1,14 @@
-body {
-  overflow: hidden;
+html {
   min-width: 1200px;
   width: auto !important;
   width: 1200px;
-  min-height: 900px;
+  min-height: 800px;
   height: auto !important;
   height: 900px;
+}
+
+body {
+  overflow: hidden;
 }
 
 .noselect {
@@ -48,4 +51,12 @@ body {
 #submit-setting {
   padding: 10px;
   margin-top: 24px;
+}
+
+.group-member-item {
+  background-color:#e9ecef;
+}
+
+#canvas-div {
+  overflow: hidden;
 }

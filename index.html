@@ -64,35 +64,42 @@
             <h6 class='text-secondary font-weight-bold float-left ml-3 mt-2'>{{group.id}}</h6>
             <span class='badge badge-secondary badge-pill float-right mr-3 mt-2'>{{group.members.length}}</span>
           </div> <!-- Group Info end -->
-          <!-- Toolbar -->
+          <!-- Option bar -->
           <div class='col-10 py-2 bg-light border-left border-top d-flex'>
-            <div class='input-group input-group-sm col-2'>
+            <div class='input-group input-group-sm col-3'>
+              <div class='input-group-prepend'>
+                <label class='input-group-text'>Pos (x, y)</label>
+              </div>
+              <!-- TODO: -->
+              <input type='text' ng-value='canvas.draw.pos.x + ", " + canvas.draw.pos.y' class='form-control' Readonly>
+            </div>
+            <div class='input-group input-group-sm col-3'>
               <div class='input-group-prepend'>
                 <label class='input-group-text'>Color</label>
               </div>
               <select ng-options='color for color in STROKE_STYLE_OPTIONS' ng-model='canvas.draw.strokeStyle' class='custom-select'></select>
             </div>
-            <div class='input-group input-group-sm col-2'>
+            <div class='input-group input-group-sm col-3'>
               <div class='input-group-prepend'>
                 <label class='input-group-text'>Line width</label>
               </div>
               <select ng-options='lineWidth for lineWidth in LINE_WIDTH_OPTIONS' ng-model='canvas.draw.lineWidth' class='custom-select'></select>
             </div>
-          </div> <!-- Toobar end -->
+          </div> <!-- Option bar end -->
           <!-- New line -->
           <div class='w-100'></div>
           <!-- Group members -->
           <div class='col-2 px-0 bg-light border-left'>
             <ul class='list-group'>
-              <li ng-repeat='member in group.members' class='list-group-item rounded-0 border-left-0 border-right-0'
-                style='background-color:#e9ecef'>
-                <h6 ng-class='member === userId ? "" : "font-weight-light"' class='float-left my-1'>{{member}}</h6>
+              <li ng-repeat='member in group.members' ng-class='member === userId ? "list-group-item-info" : "group-member-item"'
+                class='list-group-item rounded-0 border-left-0 border-right-0'>
+                <h6 class='float-left my-1'>{{member}}</h6>
                 <span ng-show='member === group.manager' class='badge badge-primary float-left ml-2 mt-1'>M</span>
               </li>
             </ul>
           </div> <!-- Group members end -->
           <!-- Canvas -->
-          <div class='col-10 px-0 bg-white border-left border-top'>
+          <div id='canvas-div' class='col-10 px-0 bg-white border-left border-top'>
             <!-- Whiteboard -->
             <canvas ng-mousedown='canvasMousedown($event)' ng-mouseup='canvasMouseup($event)' ng-mouseleave='canvasMouseleave($event)'
               ng-mousemove='canvasMousemove($event)' id='canvas' width='3200px' height='1800px'>
