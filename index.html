@@ -70,25 +70,27 @@
           </div> <!-- Group Info end -->
           <!-- Option bar -->
           <div class='col-10 py-2 bg-light border-left border-top d-flex'>
+            <!-- Draw position -->
             <div class='input-group input-group-sm col-3'>
               <div class='input-group-prepend'>
                 <label class='input-group-text'>Pos (x, y)</label>
               </div>
-              <!-- TODO: -->
               <input type='text' ng-value='canvas.draw.pos.x + ", " + canvas.draw.pos.y' class='form-control' Readonly>
-            </div>
+            </div> <!-- Draw position end -->
+            <!-- Color option -->
             <div class='input-group input-group-sm col-3'>
               <div class='input-group-prepend'>
                 <label class='input-group-text'>Color</label>
               </div>
               <select ng-options='color for color in STROKE_STYLE_OPTIONS' ng-model='canvas.draw.strokeStyle' class='custom-select'></select>
-            </div>
+            </div> <!-- Color option end -->
+            <!-- Line width option -->
             <div class='input-group input-group-sm col-3'>
               <div class='input-group-prepend'>
                 <label class='input-group-text'>Line width</label>
               </div>
               <select ng-options='lineWidth for lineWidth in LINE_WIDTH_OPTIONS' ng-model='canvas.draw.lineWidth' class='custom-select'></select>
-            </div>
+            </div><!-- Line width option end -->
           </div> <!-- Option bar end -->
           <!-- New line -->
           <div class='w-100'></div>

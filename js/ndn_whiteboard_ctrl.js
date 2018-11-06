@@ -230,7 +230,7 @@ const ndnWhiteboardCtrl = function(
     // Callback to handle timeout.
     const handleTimeout = function(interest) {
       $scope.$apply(function() {
-        setMessage('text-warning', 'Join group requesr timeout with group link ' + groupLink + '.');
+        setMessage('text-warning', 'Join group request timeout with group link ' + groupLink + '.');
         console.log('Join group request timeout. Group link:', groupLink);
         // Enable join group button.
         $scope.disableJoinGroup = false;

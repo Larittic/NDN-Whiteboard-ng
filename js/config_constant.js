@@ -6,7 +6,15 @@ const configConstant = {
   // Default uer ID.
   DEFAULT_USER_ID: 'user',
   // Canvas stroke style (color) options.
-  STROKE_STYLE_OPTIONS: ['black', 'white'],
+  STROKE_STYLE_OPTIONS: [
+    'black',
+    'white',
+    'grey',
+    'red',
+    'yellow',
+    'blue',
+    'green'
+  ],
   // Canvas line width options.
   LINE_WIDTH_OPTIONS: [2, 4, 6, 8, 12, 16, 24, 32, 48, 64]
 };
