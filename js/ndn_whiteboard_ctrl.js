@@ -80,13 +80,16 @@ const ndnWhiteboardCtrl = function(
   $scope.leaveGroup = function() {
     leaveGroup();
     createGroup();
-    // TODO: show message of leaving original group and creating new group.
   };
 
   // Copies group link to clipboard.
   $scope.shareLink = function() {
-    util.copyToClipboard($scope.group.getGroupLink());
-    // TODO: show message of link copied.
+    try {
+      util.copyToClipboard($scope.group.getGroupLink());
+      setMessage('text-secondary', 'Group link copied to clipboard.');
+    } catch (error) {
+      setMessage('text-danger', 'Error! Failed to copy group link to clipboard.');
+    }
   };
 
   // Tries to join an existing group through group link.
@@ -163,8 +166,10 @@ const ndnWhiteboardCtrl = function(
     // Try to register member prefix.
     try {
       $scope.memeberPrefixId = registerMemberPrefix();
+      setMessage('text-success', 'Success! Created group ' + $scope.group.id + '.');
     } catch (error) {
       $exceptionHandler(error);
+      setMessage('text-danger', 'Error! Failed to create group.');
     }
   };
 
@@ -173,6 +178,7 @@ const ndnWhiteboardCtrl = function(
     const groupLink = $scope.groupLink;
     // TODO: Check group link. If it is invalid, show error message and return.
     if (groupLink === $scope.group.getGroupLink()) {
+      setMessage('text-warning', 'Already in group of group link ' + groupLink + '.');
       console.log('Already in group. Group link:', groupLink);
       return;
     }
@@ -206,11 +212,13 @@ const ndnWhiteboardCtrl = function(
             );
             // Register member prefix.
             $scope.memeberPrefixId = registerMemberPrefix();
+            setMessage('text-success', 'Success! Joined group ' + $scope.group.id + '.');
           } else {
+            setMessage('text-warning', 'Join group request rejected with group link ' + groupLink + '.');
             console.log('Join group request rejected. Group link:', groupLink);
           }
         } catch (error) {
-          // TODO: show error message.
+          setMessage('text-danger', 'Error! Failed to join group with group link ' + groupLink + '.');
           $exceptionHandler(error);
         } finally {
           // Enable join group button.
@@ -222,6 +230,7 @@ const ndnWhiteboardCtrl = function(
     // Callback to handle timeout.
     const handleTimeout = function(interest) {
       $scope.$apply(function() {
+        setMessage('text-warning', 'Join group requesr timeout with group link ' + groupLink + '.');
         console.log('Join group request timeout. Group link:', groupLink);
         // Enable join group button.
         $scope.disableJoinGroup = false;
@@ -249,7 +258,7 @@ const ndnWhiteboardCtrl = function(
       handleTimeout
     );
     
-    // TODO: show message of join request sent.
+    setMessage('text-secondary', 'Sent join group request with group link ' + groupLink + '.');
   };
 
   // Leaves the current group by removing registered prefixes and notifying the
@@ -670,6 +679,12 @@ const ndnWhiteboardCtrl = function(
     let metaInfo = new MetaInfo();
     metaInfo.setFreshnessPeriod(freshnessPeriod);
     return new Data(new Name(name), metaInfo, content);
+  };
+
+  // Set message.
+  const setMessage = function(messageClass = 'text-secondary', messageText = 'No message.') {
+    $scope.messageClass = messageClass;
+    $scope.messageText = messageText;
   };
 };
 

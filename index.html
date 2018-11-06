@@ -49,6 +49,10 @@
               <button ng-click='logCanvas()' type='button' class='btn btn-sm btn-outline-warning'>Log canvas</button>
             </li>
           </ul>
+          <!-- Message -->
+          <span ng-class='messageClass' id='message' class='font-italic text-truncate col-3 ml-4'>
+            <u>{{messageText}}</u>
+          </span><!-- Message end-->
           <div class='input-group col-3 ml-auto'>
             <input ng-model='groupLink' type='text' class='form-control' placeholder='Group Link'>
             <div class='input-group-append'>

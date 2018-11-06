@@ -105,6 +105,7 @@ const utilService = function() {
       );
     } catch (error) {
       console.log('Unable to copy text to clipboard');
+      throw error;
     } finally {
       document.body.removeChild(aux);
     }

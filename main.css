@@ -53,6 +53,10 @@ body {
   margin-top: 24px;
 }
 
+#message {
+  width: 400px;
+}
+
 .group-member-item {
   background-color:#e9ecef;
 }
