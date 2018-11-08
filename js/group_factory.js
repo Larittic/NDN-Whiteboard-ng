@@ -154,18 +154,39 @@ const groupFactory = function(util, $httpParamSerializer) {
     };
   };
 
-  // (static) Parses the group link.
+  // (static) Parses the group link. Returns null if parsing failed.
   Group.parseGroupLink = function(groupLink) {
+    if (groupLink.indexOf('?') === -1) {
+      throw new Error('Missing "?" in group link.');
+    }
     const splited = groupLink.split('?');
+    if (splited.length != 2) {
+      throw new Error('Too many "?" in group link.');
+    }
     const prefix = splited[0];
+    if (prefix.length === 0) {
+      throw new Error('Empty prefix in group link.');
+    }
     const params = '?' + splited[1];
+    const managerPublicKey = util.unserializePublicKey(
+      util.getParameterByName('managerPublicKey', params)
+    );
+    if (!managerPublicKey) {
+      throw new Error('Missing manager public key in group link.');
+    }
+    const password = util.getParameterByName('password', params);
+    if (!password) {
+      throw new Error('Missing password in group link.');
+    }
+    const nonce = util.getParameterByName('nonce', params);
+    if (!nonce) {
+      throw new Error('Missing nonce in group link.');
+    }
     return {
       prefix: prefix,
-      managerPublicKey: util.unserializePublicKey(
-        util.getParameterByName('managerPublicKey', params)
-      ),
-      password: util.getParameterByName('password', params),
-      nonce: util.getParameterByName('nonce', params)
+      managerPublicKey: managerPublicKey,
+      password: password,
+      nonce: nonce
     };
   };
 
