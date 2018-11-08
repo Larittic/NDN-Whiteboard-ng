@@ -42,11 +42,8 @@
         <div class='collapse navbar-collapse'>
           <ul class='navbar-nav'>
             <li class='nav-item'>
-              <button ng-click='leaveGroup()' type='button' class='btn btn-sm btn-outline-danger'>Leave group</button>
-              <button ng-click='shareLink()' type='button' class='btn btn-sm btn-outline-success'>Share link</button>
-              <!-- DEBUG -->
-              <button ng-click='logGroup()' type='button' class='btn btn-sm btn-outline-warning'>Log group</button>
-              <button ng-click='logCanvas()' type='button' class='btn btn-sm btn-outline-warning'>Log canvas</button>
+              <button ng-click='leaveGroup()' type='button' class='btn btn-sm btn-outline-danger' title='Leave current group and create a new group.'>Leave group</button>
+              <button ng-click='shareLink()' type='button' class='btn btn-sm btn-outline-info' title='Copy the group link to clipboard.'>Share link</button>
             </li>
           </ul>
           <!-- Message -->
@@ -56,7 +53,7 @@
           <div class='input-group col-3 ml-auto'>
             <input ng-model='groupLink' type='text' class='form-control' placeholder='Group Link'>
             <div class='input-group-append'>
-              <button ng-disabled='disableJoinGroup' ng-click='joinGroup()' type='button' class='btn btn-outline-light'>Join</button>
+              <button ng-disabled='disableJoinGroup' ng-click='joinGroup()' type='button' class='btn btn-outline-light' title='Parse group link and send join group request.'>Join</button>
             </div>
           </div>
         </div>
