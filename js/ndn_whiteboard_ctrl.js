@@ -68,7 +68,7 @@ const ndnWhiteboardCtrl = function(
   };
 
   // Leaves the current group and creates a new group automatically.
-  $scope.leaveGroup = function() {
+  $scope.newGroup = function() {
     leaveGroup();
     createGroup();
   };
