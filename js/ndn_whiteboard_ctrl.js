@@ -13,12 +13,15 @@ const ndnWhiteboardCtrl = function(
   $scope.STROKE_STYLE_OPTIONS = config.STROKE_STYLE_OPTIONS;
   $scope.LINE_WIDTH_OPTIONS = config.LINE_WIDTH_OPTIONS;
 
+  // Set initial setting message.
+  $scope.settingMessageClass = 'text-secondary';
+  $scope.settingMessage = 'Please set NFD host and username.';
+  // Set NFD host field to default value.
+  $scope.nfdHost = config.DEFAULT_NFD_HOST;
   // Show setting and hide whiteboard in the beginning.
   $scope.showSetting = true;
   $scope.showWhiteboard = false;
   $scope.disableSubmitSetting = false;
-  // Set NFD host field to default value.
-  $scope.nfdHost = config.DEFAULT_NFD_HOST;
 
   // $scope methods.
 
@@ -31,42 +34,61 @@ const ndnWhiteboardCtrl = function(
   $scope.submitSetting = function() {
     // Disable submit setting button.
     $scope.disableSubmitSetting = true;
-    // Get user ID by randomizing based on input username.
-    $scope.userId = util.getRandomId($scope.username, 6);
-    // Create asymmetric key pair used for signing.
-    $scope.signingKeyPair = sjcl.ecc.ecdsa.generateKeys(256);
-    // Initialize canvas.
-    $scope.canvas = new Canvas(document.getElementById('canvas'));
-    // Num of last canvas update from user drawing (not from other group
-    // members). It is used to check if there is a fresh canvas update.
-    $scope.canvasLastUpdateNum = -1;
-    // Create NDN face.
-    $scope.face = new Face({ host: $scope.nfdHost });
-    // Create validator to validate data.
-    $scope.validator = new Validator(new ValidationPolicyAcceptAll());
-    // Create NDN key chain.
-    $scope.keyChain = new KeyChain('pib-memory:', 'tpm-memory:');
-    // Create default identity and set it as command signing info.
-    $scope.keyChain.createIdentityV2(
-      /*identityName=*/ new Name('defaultIdentity'),
-      /*params=*/ KeyChain.getDefaultKeyParams(),
-      /*onComplete=*/ function() {
-        $scope.$apply(function() {
-          $scope.face.setCommandSigningInfo(
-            $scope.keyChain,
-            $scope.keyChain.getDefaultCertificateName()
-          );
-          // Create a new group as manager.
-          createGroup();
-          // Hide setting and show whiteboard.
-          $scope.showSetting = false;
-          $scope.showWhiteboard = true;
-        });
-      },
-      /*onError=*/ function(error) {
-        $exceptionHandler(error);
-      }
-    );
+    $scope.settingMessageClass = 'text-secondary';
+    $scope.settingMessage = 'Submitting settings...';
+    try {
+      // Get user ID by randomizing based on input username.
+      $scope.userId = util.getRandomId($scope.username, 6);
+      // Create asymmetric key pair used for signing.
+      $scope.signingKeyPair = sjcl.ecc.ecdsa.generateKeys(256);
+      // Initialize canvas.
+      $scope.canvas = new Canvas(document.getElementById('canvas'));
+      // Num of last canvas update from user drawing (not from other group
+      // members). It is used to check if there is a fresh canvas update.
+      $scope.canvasLastUpdateNum = -1;
+      // Create NDN face.
+      // Warning! Currently, NDN-JS does not throw the error if new Face()
+      // failed because of websocket creation error. Thus the error cannot be
+      // caught here.
+      $scope.face = new Face({ host: $scope.nfdHost });
+      // Create validator to validate data.
+      $scope.validator = new Validator(new ValidationPolicyAcceptAll());
+      // Create NDN key chain.
+      $scope.keyChain = new KeyChain('pib-memory:', 'tpm-memory:');
+      // Create default identity and set it as command signing info.
+      $scope.keyChain.createIdentityV2(
+        /*identityName=*/ new Name('defaultIdentity'),
+        /*params=*/ KeyChain.getDefaultKeyParams(),
+        /*onComplete=*/ function() {
+          $scope.$apply(function() {
+            $scope.face.setCommandSigningInfo(
+              $scope.keyChain,
+              $scope.keyChain.getDefaultCertificateName()
+            );
+            // Create a new group as manager.
+            createGroup();
+            // Hide setting and show whiteboard.
+            $scope.showSetting = false;
+            $scope.showWhiteboard = true;
+          });
+        },
+        /*onError=*/ function(error) {
+          // Set error message.
+          $scope.settingMessageClass = 'text-danger';
+          $scope.settingMessage = 'Error: ' + error.toString();
+          // Enable submit setting button.
+          $scope.disableSubmitSetting = false;
+          $exceptionHandler(error);
+        }
+      );
+    } catch (error) {
+      // Set error message.
+      $scope.settingMessageClass = 'text-danger';
+      $scope.settingMessage = 'Error: ' + error.toString();
+      // Enable submit setting button.
+      $scope.disableSubmitSetting = false;
+      $exceptionHandler(error);
+    }
   };
 
   // Leaves the current group and creates a new group automatically.
@@ -82,6 +104,7 @@ const ndnWhiteboardCtrl = function(
       setMessage('text-secondary', 'Group link copied to clipboard.');
     } catch (error) {
       setMessage('text-danger', 'Failed to copy group link to clipboard.');
+      $exceptionHandler(error);
     }
   };
 

@@ -32,6 +32,9 @@
           <input ng-model='username' type='text' class='form-control' placeholder='username' required autofocus>
         </div>
         <button ng-disabled='disableSubmitSetting' class='btn btn-primary btn-block' id='submit-setting'>Submit</button>
+        <div class='mt-2'>
+          <span ng-class='settingMessageClass' class='font-weight-light'>{{settingMessage}}</span>
+        </div>
       </form>
     </div> <!-- Setting end -->
     <!-- Whiteboard -->
