@@ -17,6 +17,8 @@ const ndnWhiteboardCtrl = function(
   $scope.showSetting = true;
   $scope.showWhiteboard = false;
   $scope.disableSubmitSetting = false;
+  // Set NFD host field to default value.
+  $scope.nfdHost = config.DEFAULT_NFD_HOST;
 
   // $scope methods.
 

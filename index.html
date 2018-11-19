@@ -23,13 +23,13 @@
       <form ng-submit='submitSetting()' class='form-setting'>
         <h1 class='h1 mb-3 font-weight-light'>NDN Whiteboard</h1>
         <div class='input-group'>
-          <input ng-model='nfdHost' type='text' class='form-control' placeholder='NFD host' required autofocus>
+          <input ng-model='nfdHost' type='text' class='form-control' placeholder='NFD host' required>
           <div class='input-group-append'>
             <button ng-click='useDefaultNfdHost()' type='button' class='btn btn-outline-secondary'>Default</button>
           </div>
         </div>
         <div class='input-group'>
-          <input ng-model='username' type='text' class='form-control' placeholder='username' required>
+          <input ng-model='username' type='text' class='form-control' placeholder='username' required autofocus>
         </div>
         <button ng-disabled='disableSubmitSetting' class='btn btn-primary btn-block' id='submit-setting'>Submit</button>
       </form>
