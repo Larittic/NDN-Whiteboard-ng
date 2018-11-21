@@ -154,7 +154,7 @@ const groupFactory = function(util, $httpParamSerializer) {
     };
   };
 
-  // (static) Parses the group link. Returns null if parsing failed.
+  // (static) Parses the group link. Throws error if parsing failed.
   Group.parseGroupLink = function(groupLink) {
     if (groupLink.indexOf('?') === -1) {
       throw new Error('Missing "?" in group link.');
