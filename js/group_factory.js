@@ -1,15 +1,14 @@
-const groupFactory = function(util, $httpParamSerializer) {
+const groupFactory = function(util, config, $httpParamSerializer) {
   // Returns a new group object.
   const Group = function(
     groupId = 'empty_group_id',
-    uriPrefix = 'empty_uri_prefix',
     manager = 'empty_manager',
     managerPublicKey = null,
     passwordLength = 16,
     nonceLength = 8
   ) {
     this.id = groupId;
-    this.uri = uriPrefix + '/' + groupId;
+    this.uri = config.URI_PREFIX + '/' + groupId;
     this.manager = manager;
     // Array of member IDs.
     this.members = [manager];
@@ -131,6 +130,11 @@ const groupFactory = function(util, $httpParamSerializer) {
     this.getMemberPrefix = function(member) {
       if (!this.hasMember(member)) return null;
       return this.uri + '/' + member;
+    };
+
+    // Returns the group notification prefix.
+    this.getNotificationPrefix = function() {
+      return config.MULTICAST_PREFIX + '/' + this.uri;
     };
 
     // Picks a new manager. It is only called by manager when he is leaving

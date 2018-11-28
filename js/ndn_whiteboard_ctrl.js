@@ -175,13 +175,13 @@ const ndnWhiteboardCtrl = function(
   const createGroup = function() {
     $scope.group = new Group(
       /*groupId=*/ util.getRandomId('Group', 6),
-      /*uriPrefix=*/ config.URI_PREFIX,
       /*manager=*/ $scope.userId,
       /*managerPublicKey=*/ $scope.signingKeyPair.pub
     );
     // Try to register member prefix.
     try {
       $scope.memeberPrefixId = registerMemberPrefix();
+      $scope.notificationPrefixId = registerNotificationPrefix();
       setMessage('text-secondary', 'Created new group ' + $scope.group.id + '.');
     } catch (error) {
       $exceptionHandler(error);
@@ -232,6 +232,7 @@ const ndnWhiteboardCtrl = function(
             );
             // Register member prefix.
             $scope.memeberPrefixId = registerMemberPrefix();
+            $scope.notificationPrefixId = registerNotificationPrefix();
             setMessage('text-secondary', 'Joined group ' + $scope.group.id + '.');
           } else {
             setMessage('text-danger', 'Join group request rejected with group link ' + groupLink + '.');
@@ -293,6 +294,9 @@ const ndnWhiteboardCtrl = function(
     if ($scope.memeberPrefixId) {
       ndn.removeRegisteredPrefix($scope.face, $scope.memeberPrefixId);
     }
+    if ($scope.notificationPrefixId) {
+      ndn.removeRegisteredPrefix($scope.face, $scope.notificationPrefixId);
+    }
 
     // If the user is group manager, send manager_leave interest to another
     // member who will become the new manager and notify the group. Otherwise,
@@ -341,8 +345,8 @@ const ndnWhiteboardCtrl = function(
           const query = util.getComponentString(interest.name, -4);
           const params = util.getComponentString(interest.name, -3);
           // Call corresponding handler if exists.
-          if (query in interestHandler) {
-            return interestHandler[query](interest, params);
+          if (query in memberInterestHandler) {
+            return memberInterestHandler[query](interest, params);
           }
           return null;
         } catch (error) {
@@ -359,8 +363,8 @@ const ndnWhiteboardCtrl = function(
     );
   };
 
-  // Interest handlers classified by query strings.
-  const interestHandler = {
+  // Hanlder functions for member interests classified by query strings.
+  const memberInterestHandler = {
     // Handler for 'request_join' interest. Only manager will call it.
     request_join: function(receivedInterest, params) {
       if ($scope.userId !== $scope.group.manager) return null;
@@ -424,6 +428,76 @@ const ndnWhiteboardCtrl = function(
       );
     },
 
+    // Handler for 'group_view' interest.
+    group_view: function(receivedInterest, params) {
+      // Verify interest.
+      const signer = util.getComponentString(receivedInterest.name, -2);
+      const publicKey = $scope.group.publicKey[signer];
+      verifyInterest(receivedInterest, publicKey);
+      return createNdnData(
+        /*name=*/ receivedInterest.name,
+        /*content=*/ signAndEncryptData(
+          JSON.stringify($scope.group.getGroupView())
+        )
+      );
+    },
+
+    // Handler for 'all_whiteboard_updates' interest.
+    all_whiteboard_updates: function(receivedInterest, params) {
+      // TODO: handle interest.
+      return null;
+    },
+
+    // Handler for 'whiteboard_update' interest. 'whiteboard_update' interest
+    // does not need to be signed so that the cached data can be used to respond
+    // to 'whiteboard_update' interests from others.
+    whiteboard_update: function(receivedInterest, params) {
+      const updateNum = util.getParameterByName('num', params);
+      return createNdnData(
+        /*name=*/ receivedInterest.name,
+        /*content=*/ signAndEncryptData(
+          JSON.stringify({
+            updater: $scope.userId,
+            whiteboardUpdate: $scope.group.getWhiteboardUpdate(
+              $scope.userId,
+              updateNum
+            )
+          })
+        )
+      );
+    }
+  };
+
+  // Register notification prefix. Returns registered prefix ID if succeeds.
+  const registerNotificationPrefix = function() {
+    // Callback to handle interest.
+    // Interest format: '/<prefix>/<query>/<params>/<signer>/<signature>'.
+    const handleInterest = function(interest) {
+      return $scope.$apply(function() {
+        try {
+          const query = util.getComponentString(interest.name, -4);
+          const params = util.getComponentString(interest.name, -3);
+          // Call corresponding handler if exists.
+          if (query in notificationInterestHandler) {
+            return notificationInterestHandler[query](interest, params);
+          }
+          return null;
+        } catch (error) {
+          $exceptionHandler(error);
+          return null;
+        }
+      });
+    };
+    // Return registered prefix ID.
+    return ndn.registerPrefix(
+      $scope.face,
+      $scope.group.getNotificationPrefix(),
+      handleInterest
+    );
+  };
+
+  // Hanlder functions for notification interests classified by query strings.
+  const notificationInterestHandler = {
     // Handler for 'notify_group_update' interest.
     notify_group_update: function(receivedInterest, params) {
       // Verify interest.
@@ -464,20 +538,6 @@ const ndnWhiteboardCtrl = function(
       return createNdnData(
         /*name=*/ receivedInterest.name,
         /*content=*/ signAndEncryptData('ACK')
-      );
-    },
-
-    // Handler for 'group_view' interest.
-    group_view: function(receivedInterest, params) {
-      // Verify interest.
-      const signer = util.getComponentString(receivedInterest.name, -2);
-      const publicKey = $scope.group.publicKey[signer];
-      verifyInterest(receivedInterest, publicKey);
-      return createNdnData(
-        /*name=*/ receivedInterest.name,
-        /*content=*/ signAndEncryptData(
-          JSON.stringify($scope.group.getGroupView())
-        )
       );
     },
 
@@ -526,65 +586,34 @@ const ndnWhiteboardCtrl = function(
         /*name=*/ receivedInterest.name,
         /*content=*/ signAndEncryptData('ACK')
       );
-    },
-
-    // Handler for 'all_whiteboard_updates' interest.
-    all_whiteboard_updates: function(receivedInterest, params) {
-      // TODO: handle interest.
-      return null;
-    },
-
-    // Handler for 'whiteboard_update' interest. 'whiteboard_update' interest
-    // does not need to be signed so that the cached data can be used to respond
-    // to 'whiteboard_update' interests from others.
-    whiteboard_update: function(receivedInterest, params) {
-      const updateNum = util.getParameterByName('num', params);
-      return createNdnData(
-        /*name=*/ receivedInterest.name,
-        /*content=*/ signAndEncryptData(
-          JSON.stringify({
-            updater: $scope.userId,
-            whiteboardUpdate: $scope.group.getWhiteboardUpdate(
-              $scope.userId,
-              updateNum
-            )
-          })
-        )
-      );
     }
   };
 
   // Notifies members of group update. Only manager will call it.
   const notifyGroupUpdate = function() {
-    for (const member of $scope.group.members) {
-      if (member === $scope.userId) continue;
-      const interest = createInterest(
-        /*prefix=*/ $scope.group.getMemberPrefix(member),
-        /*query=*/ 'notify_group_update',
-        /*params=*/ {
-          id: $scope.userId,
-          time: new Date().getTime()
-        }
-      );
-      ndn.sendInterest($scope.face, $scope.validator, interest);
-    }
+    const interest = createInterest(
+      /*prefix=*/ $scope.group.getNotificationPrefix(),
+      /*query=*/ 'notify_group_update',
+      /*params=*/ {
+        id: $scope.userId,
+        time: new Date().getTime()
+      }
+    );
+    ndn.sendInterest($scope.face, $scope.validator, interest);
   };
 
   // Notifies members of whiteboard update. All members will call it.
   const notifyWhiteboardUpdate = function(updateNum) {
-    for (const member of $scope.group.members) {
-      if (member === $scope.userId) continue;
-      const interest = createInterest(
-        /*prefix=*/ $scope.group.getMemberPrefix(member),
-        /*query=*/ 'notify_whiteboard_update',
-        /*params=*/ {
-          id: $scope.userId,
-          num: updateNum,
-          time: new Date().getTime()
-        }
-      );
-      ndn.sendInterest($scope.face, $scope.validator, interest);
-    }
+    const interest = createInterest(
+      /*prefix=*/ $scope.group.getNotificationPrefix(),
+      /*query=*/ 'notify_whiteboard_update',
+      /*params=*/ {
+        id: $scope.userId,
+        num: updateNum,
+        time: new Date().getTime()
+      }
+    );
+    ndn.sendInterest($scope.face, $scope.validator, interest);
   };
 
   // Saves the last canvas drawing to group whiteboard updates.

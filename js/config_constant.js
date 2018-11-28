@@ -1,6 +1,8 @@
 const configConstant = {
   // URI prefix of all NDN name prefixes.
   URI_PREFIX: '/ndn-whiteboard',
+  // NFD multicast interest name prefix.
+  MULTICAST_PREFIX: '/ndn/broadcast',
   // Default NFD host. If met DNS problem, try '128.97.98.8'.
   DEFAULT_NFD_HOST: 'memoria.ndn.ucla.edu',
   // Default uer ID.
